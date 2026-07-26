@@ -26,6 +26,12 @@ Use `ai/profile/bug-fix.md` for an explicit bug report about this repository whe
 
 The profile is an explicit user-approved exception to the normal delegation rule: orchestrate one fresh subagent at a time for `plan`, `execute`, `validate`, and `done`. Follow the profile's Git isolation, TDD, verification, retry, and reporting rules exactly.
 
+## Research Profile
+
+Use [ai/profile/research.md](ai/profile/research.md) for a question about this repository's code, structure, behavior, dependencies, symbols, data flow, or architecture. Explicit triggers are `/research <question>` and `Research: <question>`; they take priority over automatic selection. Otherwise, activate the profile when the user asks to investigate or explain the current codebase without requesting a change.
+
+Do not activate Research for a bug report that requests a fix, a feature request, a code review, or an external-service outage without evidence of a project defect. Use `Bug Fix` when its trigger matches. Research is standalone: it investigates and answers in chat, but does not modify the checkout, create a report file, or run subagents.
+
 ## Stack
 
 - Kotlin Multiplatform, Compose Multiplatform, Android, iOS.
