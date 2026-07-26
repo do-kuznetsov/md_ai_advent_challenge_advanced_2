@@ -50,6 +50,8 @@ app -> core + feature modules
 
 `app` owns application composition: manual DI graph, Navigation 3 back stack, feature route serializers. Only listed edges are allowed. In particular, `ui` never depends on `data`, and one feature never reaches into another feature's `data` or `ui` module.
 
+`data` may also depend on `core:*` and another feature's `domain` module. This is reserved for reusable platform services and feature contracts, such as location and reverse geocoding. `ui` still depends only on its own `domain` module and `core:mvvm`.
+
 `data` exposes one manual DI module per feature. Keep API clients, DTOs, repository implementations, and data-to-domain mappers `internal`. `ui` exposes a DI module; add an `internal` component only when runtime arguments or lifecycle-scoped objects are needed. `app` assembles those modules and components.
 
 ## UI And Navigation
