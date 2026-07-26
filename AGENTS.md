@@ -37,6 +37,7 @@ Do not add cache, persistent storage, favorites, settings, a map, search, or ano
 Current layout:
 
 ```text
+androidApp/ (Android APK host; depends only on app)
 app/
 core/
   location/
@@ -55,6 +56,7 @@ Allowed dependencies:
 
 ```text
 app -> core:location, core:mvvm, feature:reverse-geocoding:{domain,data}, feature:weather:{domain,data,ui}
+androidApp -> app
 feature:reverse-geocoding:data -> feature:reverse-geocoding:domain
 feature:weather:data -> core:location, feature:reverse-geocoding:domain, feature:weather:domain
 feature:weather:ui -> core:mvvm, feature:weather:domain
