@@ -17,6 +17,7 @@
 		A10000000000000000000003 /* WeatherShared.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; path = "../app/build/xcode-frameworks/$(CONFIGURATION)/$(SDK_NAME)/WeatherShared.framework"; sourceTree = SOURCE_ROOT; };
 		A10000000000000000000004 /* WeatherIos.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = WeatherIos.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A10000000000000000000005 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		A10000000000000000000006 /* Config.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Config.xcconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -31,7 +32,7 @@
 /* Begin PBXGroup section */
 		A10000000000000000000031 = {
 			isa = PBXGroup;
-			children = (A10000000000000000000032 /* iosApp */, A10000000000000000000033 /* Frameworks */, A10000000000000000000034 /* Products */,);
+			children = (A10000000000000000000032 /* iosApp */, A10000000000000000000035 /* Configuration */, A10000000000000000000033 /* Frameworks */, A10000000000000000000034 /* Products */,);
 			sourceTree = "<group>";
 		};
 		A10000000000000000000032 /* iosApp */ = {
@@ -50,6 +51,12 @@
 			isa = PBXGroup;
 			children = (A10000000000000000000004 /* WeatherIos.app */,);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		A10000000000000000000035 /* Configuration */ = {
+			isa = PBXGroup;
+			children = (A10000000000000000000006 /* Config.xcconfig */,);
+			path = Configuration;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -108,10 +115,10 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
-		A10000000000000000000081 /* Debug */ = {isa = XCBuildConfiguration; buildSettings = { CLANG_ENABLE_MODULES = YES; IPHONEOS_DEPLOYMENT_TARGET = 15.0; PRODUCT_BUNDLE_IDENTIFIER = com.sibgear.weather.ios; SWIFT_VERSION = 5.0; }; name = Debug; };
-		A10000000000000000000082 /* Release */ = {isa = XCBuildConfiguration; buildSettings = { CLANG_ENABLE_MODULES = YES; IPHONEOS_DEPLOYMENT_TARGET = 15.0; PRODUCT_BUNDLE_IDENTIFIER = com.sibgear.weather.ios; SWIFT_VERSION = 5.0; }; name = Release; };
-		A10000000000000000000083 /* Debug */ = {isa = XCBuildConfiguration; buildSettings = { ARCHS = arm64; INFOPLIST_FILE = iosApp/Info.plist; LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks"; PRODUCT_NAME = "$(TARGET_NAME)"; }; name = Debug; };
-		A10000000000000000000084 /* Release */ = {isa = XCBuildConfiguration; buildSettings = { ARCHS = arm64; INFOPLIST_FILE = iosApp/Info.plist; LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks"; PRODUCT_NAME = "$(TARGET_NAME)"; }; name = Release; };
+		A10000000000000000000081 /* Debug */ = {isa = XCBuildConfiguration; baseConfigurationReference = A10000000000000000000006 /* Config.xcconfig */; buildSettings = { CLANG_ENABLE_MODULES = YES; IPHONEOS_DEPLOYMENT_TARGET = 15.0; SDKROOT = iphoneos; SUPPORTED_PLATFORMS = "iphoneos iphonesimulator"; SWIFT_VERSION = 5.0; }; name = Debug; };
+		A10000000000000000000082 /* Release */ = {isa = XCBuildConfiguration; baseConfigurationReference = A10000000000000000000006 /* Config.xcconfig */; buildSettings = { CLANG_ENABLE_MODULES = YES; IPHONEOS_DEPLOYMENT_TARGET = 15.0; SDKROOT = iphoneos; SUPPORTED_PLATFORMS = "iphoneos iphonesimulator"; SWIFT_VERSION = 5.0; }; name = Release; };
+		A10000000000000000000083 /* Debug */ = {isa = XCBuildConfiguration; buildSettings = { CODE_SIGN_IDENTITY = "Apple Development"; CODE_SIGN_STYLE = Automatic; DEVELOPMENT_TEAM = "$(TEAM_ID)"; "EXCLUDED_ARCHS[sdk=iphonesimulator*]" = x86_64; INFOPLIST_FILE = iosApp/Info.plist; LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks"; PRODUCT_NAME = "$(TARGET_NAME)"; TARGETED_DEVICE_FAMILY = "1,2"; }; name = Debug; };
+		A10000000000000000000084 /* Release */ = {isa = XCBuildConfiguration; buildSettings = { CODE_SIGN_IDENTITY = "Apple Development"; CODE_SIGN_STYLE = Automatic; DEVELOPMENT_TEAM = "$(TEAM_ID)"; "EXCLUDED_ARCHS[sdk=iphonesimulator*]" = x86_64; INFOPLIST_FILE = iosApp/Info.plist; LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks"; PRODUCT_NAME = "$(TARGET_NAME)"; TARGETED_DEVICE_FAMILY = "1,2"; }; name = Release; };
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */

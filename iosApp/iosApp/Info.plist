@@ -4,6 +4,8 @@
 <dict>
     <key>CFBundleDisplayName</key>
     <string>Погода</string>
+    <key>CFBundleExecutable</key>
+    <string>$(EXECUTABLE_NAME)</string>
     <key>CFBundleIdentifier</key>
     <string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
     <key>CFBundlePackageType</key>
@@ -12,6 +14,8 @@
     <string>1.0</string>
     <key>CFBundleVersion</key>
     <string>1</string>
+    <key>CADisableMinimumFrameDurationOnPhone</key>
+    <true/>
     <key>NSLocationWhenInUseUsageDescription</key>
     <string>Геолокация нужна, чтобы показать погоду в вашем городе.</string>
     <key>UILaunchScreen</key>

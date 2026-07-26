@@ -6,7 +6,6 @@ struct WeatherIosApp: App {
     var body: some Scene {
         WindowGroup {
             WeatherViewController()
-                .ignoresSafeArea()
         }
     }
 }
