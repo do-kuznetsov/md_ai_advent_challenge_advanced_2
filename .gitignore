@@ -33,3 +33,6 @@ local.properties
 
 # IDEA
 .idea/
+
+# Xcode
+**/*.xcodeproj/*
