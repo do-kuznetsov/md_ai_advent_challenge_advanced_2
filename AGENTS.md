@@ -20,6 +20,12 @@ Delegate only independent multi-module architecture research or a final diff rev
 
 The root file is the only local project contract for now. Do not create path-local `AGENTS.md` files while the eight modules share these rules. Revisit `app/AGENTS.md` when several feature routes exist, and `core/location/AGENTS.md` when permission or location workflows become independently complex.
 
+## Bug Fix Profile
+
+Use `ai/profile/bug-fix.md` for an explicit bug report about this repository when the user asks to fix it. Triggers are a message beginning with `/bugfix` or `Bugfix:`, or a clear description of current behavior, expected behavior, and intent to correct a defect. Do not activate it for a research question, code review, feature request, or an external-service outage with no evidence of a project defect.
+
+The profile is an explicit user-approved exception to the normal delegation rule: orchestrate one fresh subagent at a time for `plan`, `execute`, `validate`, and `done`. Follow the profile's Git isolation, TDD, verification, retry, and reporting rules exactly.
+
 ## Stack
 
 - Kotlin Multiplatform, Compose Multiplatform, Android, iOS.
