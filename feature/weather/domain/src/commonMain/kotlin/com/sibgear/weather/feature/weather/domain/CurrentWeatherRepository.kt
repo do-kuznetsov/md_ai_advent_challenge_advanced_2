@@ -9,6 +9,7 @@ public data class CurrentWeather(
 )
 
 public interface CurrentWeatherRepository {
+
     public suspend fun loadCurrentWeather(): Result<CurrentWeather>
 }
 
@@ -17,5 +18,6 @@ public class CurrentWeatherLocationUnavailableException : IllegalStateException(
 public class GetCurrentWeatherInteractor(
     private val repository: CurrentWeatherRepository,
 ) {
+
     public suspend operator fun invoke(): Result<CurrentWeather> = repository.loadCurrentWeather()
 }

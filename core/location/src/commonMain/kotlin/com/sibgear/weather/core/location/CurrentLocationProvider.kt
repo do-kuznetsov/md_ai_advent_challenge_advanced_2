@@ -6,6 +6,7 @@ public data class LocationCoordinates(
 )
 
 public interface CurrentLocationProvider {
+
     public suspend fun currentLocation(): Result<LocationCoordinates>
 }
 

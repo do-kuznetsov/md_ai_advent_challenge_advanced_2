@@ -20,6 +20,7 @@ import com.sibgear.weather.feature.weather.ui.WeatherEvent
 import com.sibgear.weather.feature.weather.ui.WeatherScreenComponent
 
 public class MainActivity : ComponentActivity() {
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {

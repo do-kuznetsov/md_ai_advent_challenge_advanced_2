@@ -13,6 +13,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 public class OpenMeteoApiTest {
+
     @Test
     public fun requestsCurrentWeatherFieldsAndMapsResponse() =
         runTest {

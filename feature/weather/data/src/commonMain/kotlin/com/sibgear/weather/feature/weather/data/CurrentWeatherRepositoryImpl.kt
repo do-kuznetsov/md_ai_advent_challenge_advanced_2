@@ -12,6 +12,7 @@ internal class CurrentWeatherRepositoryImpl(
     private val api: OpenMeteoApi,
     private val mapper: WeatherDataDomainMapper,
 ) : CurrentWeatherRepository {
+
     override suspend fun loadCurrentWeather(): Result<CurrentWeather> {
         val coordinates =
             currentLocationProvider.currentLocation().getOrElse {
@@ -28,6 +29,7 @@ internal class CurrentWeatherRepositoryImpl(
     }
 
     private companion object {
+
         const val CURRENT_LOCATION_NAME: String = "Текущее местоположение"
     }
 }

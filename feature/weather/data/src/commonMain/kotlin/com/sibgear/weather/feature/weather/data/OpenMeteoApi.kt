@@ -10,6 +10,7 @@ import kotlinx.serialization.Serializable
 internal class OpenMeteoApi(
     private val client: HttpClient,
 ) {
+
     internal suspend fun getCurrentForecast(
         latitude: Double,
         longitude: Double,
@@ -26,6 +27,7 @@ internal class OpenMeteoApi(
             }.body()
 
     private companion object {
+
         const val FORECAST_URL: String = "https://api.open-meteo.com/v1/forecast"
         const val CURRENT_FIELDS: String = "temperature_2m,cloud_cover,wind_speed_10m,precipitation"
     }

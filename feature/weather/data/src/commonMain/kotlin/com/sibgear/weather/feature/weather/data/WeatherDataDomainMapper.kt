@@ -3,6 +3,7 @@ package com.sibgear.weather.feature.weather.data
 import com.sibgear.weather.feature.weather.domain.CurrentWeather
 
 internal class WeatherDataDomainMapper {
+
     internal fun map(
         source: ForecastDto,
         cityName: String,

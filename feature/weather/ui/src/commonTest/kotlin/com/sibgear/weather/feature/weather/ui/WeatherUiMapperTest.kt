@@ -5,6 +5,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 public class WeatherUiMapperTest {
+
     @Test
     public fun formatsAllWeatherMetrics() {
         val result =

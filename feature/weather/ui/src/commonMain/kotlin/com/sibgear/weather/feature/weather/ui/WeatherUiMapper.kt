@@ -4,6 +4,7 @@ import com.sibgear.weather.feature.weather.domain.CurrentWeather
 import kotlin.math.roundToInt
 
 public class WeatherUiMapper {
+
     public fun map(source: CurrentWeather): WeatherUiModel =
         WeatherUiModel(
             cityName = source.cityName,

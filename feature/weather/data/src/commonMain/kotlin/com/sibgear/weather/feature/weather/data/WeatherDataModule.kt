@@ -5,6 +5,7 @@ import com.sibgear.weather.feature.reversegeocoding.domain.ResolveCityNameIntera
 import com.sibgear.weather.feature.weather.domain.CurrentWeatherRepository
 
 public object WeatherDataModule {
+
     public fun provide(
         currentLocationProvider: CurrentLocationProvider,
         resolveCityName: ResolveCityNameInteractor,

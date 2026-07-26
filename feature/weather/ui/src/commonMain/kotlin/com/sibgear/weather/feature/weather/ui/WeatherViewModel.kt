@@ -11,6 +11,7 @@ public class WeatherViewModel(
     private val getCurrentWeather: GetCurrentWeatherInteractor,
     private val mapper: WeatherUiMapper,
 ) : BaseViewModel<WeatherState, WeatherEvent, WeatherEffect>() {
+
     private val mutableState: MutableStateFlow<WeatherState> = MutableStateFlow(WeatherState.LoadingLocation)
 
     override val state: StateFlow<WeatherState> = mutableState.asStateFlow()

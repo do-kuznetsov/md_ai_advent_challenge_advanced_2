@@ -12,11 +12,13 @@ import kotlin.coroutines.resume
 
 @OptIn(ExperimentalForeignApi::class)
 public object LocationCoreModule {
+
     public fun provide(): CurrentLocationProvider = IosCurrentLocationProvider()
 }
 
 @OptIn(ExperimentalForeignApi::class)
 internal class IosCurrentLocationProvider : CurrentLocationProvider {
+
     private val locationManager: CLLocationManager = CLLocationManager()
     private var continuation: kotlinx.coroutines.CancellableContinuation<Result<LocationCoordinates>>? = null
     private val delegate: LocationDelegate = LocationDelegate(::finish)
@@ -41,6 +43,7 @@ internal class IosCurrentLocationProvider : CurrentLocationProvider {
         private val onResult: (Result<LocationCoordinates>) -> Unit,
     ) : NSObject(),
         CLLocationManagerDelegateProtocol {
+
         override fun locationManager(
             manager: CLLocationManager,
             didUpdateLocations: List<*>,

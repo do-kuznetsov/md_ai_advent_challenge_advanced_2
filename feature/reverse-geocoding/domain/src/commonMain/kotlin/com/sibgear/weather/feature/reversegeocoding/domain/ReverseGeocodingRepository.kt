@@ -5,6 +5,7 @@ public data class CityName(
 )
 
 public interface ReverseGeocodingRepository {
+
     public suspend fun resolveCityName(
         latitude: Double,
         longitude: Double,
@@ -14,6 +15,7 @@ public interface ReverseGeocodingRepository {
 public class ResolveCityNameInteractor(
     private val repository: ReverseGeocodingRepository,
 ) {
+
     public suspend operator fun invoke(
         latitude: Double,
         longitude: Double,

@@ -4,6 +4,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 public class ResolveCityNameInteractorTest {
+
     @Test
     public fun returnsRepositoryValue() =
         kotlinx.coroutines.test.runTest {
@@ -12,6 +13,7 @@ public class ResolveCityNameInteractorTest {
                 ResolveCityNameInteractor(
                     repository =
                         object : ReverseGeocodingRepository {
+
                             override suspend fun resolveCityName(
                                 latitude: Double,
                                 longitude: Double,

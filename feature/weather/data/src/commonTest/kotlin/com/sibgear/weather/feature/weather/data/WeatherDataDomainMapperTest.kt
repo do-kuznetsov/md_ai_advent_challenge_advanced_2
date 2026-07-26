@@ -4,6 +4,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 public class WeatherDataDomainMapperTest {
+
     @Test
     public fun mapsOpenMeteoCurrentFields() {
         val result =

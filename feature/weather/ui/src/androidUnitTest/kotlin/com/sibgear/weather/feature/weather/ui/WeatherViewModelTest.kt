@@ -17,6 +17,7 @@ import kotlin.test.assertEquals
 
 @OptIn(ExperimentalCoroutinesApi::class)
 public class WeatherViewModelTest {
+
     @Test
     public fun screenOpenedRequestsLocationPermission() =
         runWeatherViewModelTest { viewModel ->
@@ -115,10 +116,12 @@ public class WeatherViewModelTest {
     private class FakeCurrentWeatherRepository(
         private val result: Result<CurrentWeather>,
     ) : CurrentWeatherRepository {
+
         override suspend fun loadCurrentWeather(): Result<CurrentWeather> = result
     }
 
     private companion object {
+
         val weather: CurrentWeather =
             CurrentWeather(
                 cityName = "Новосибирск",

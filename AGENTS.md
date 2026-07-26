@@ -2,57 +2,72 @@
 
 ## Scope And Configuration
 
-This repository contains a Kotlin Multiplatform weather application. Targets: Android and iOS. UI: Compose Multiplatform.
+This is an active production-like Kotlin Multiplatform weather application scaffold. Targets: Android and iOS. UI: Compose Multiplatform.
 
 Follow instructions in this order:
 
 1. Global `AGENTS.md`.
 2. This root `AGENTS.md`.
-3. Nearest `AGENTS.md` inside edited directory, if present.
+3. Nearest `AGENTS.md` inside the edited directory, if present.
 
-Lower-level rules add detail; they never override higher-level rules. Before editing, inspect the applicable rules and current staged and unstaged Git changes.
+Lower-level rules add detail; they never override higher-level rules. Before editing, inspect applicable rules and current staged and unstaged Git changes.
 
-Use a skill only when its trigger matches the task, and read its `SKILL.md` first. Delegate independent repository research or a final diff review to subagents when that saves time. Do not delegate a trivial one-file change.
+Use `ast-index` first for Kotlin symbols, implementations, usages, module maps, and project conventions. Use `rg` for literal strings, regular expressions, and Gradle or Markdown configuration. Apply a skill only when its trigger matches the task, and read its `SKILL.md` first.
+
+Run `./gradlew` and `ast-index` without asking when their required access is already granted by the current sandbox. Build artifacts inside this repository are allowed. Request approval only when the command requires ungranted network access, filesystem access outside configured paths, or destructive operations.
+
+Delegate only independent multi-module architecture research or a final diff review. Do not delegate a local change or a simple one-file edit. Do not add a project-specific skill: `ast-index` covers the reusable code-navigation workflow, and Gradle verification has no stable custom procedure yet.
+
+The root file is the only local project contract for now. Do not create path-local `AGENTS.md` files while the eight modules share these rules. Revisit `app/AGENTS.md` when several feature routes exist, and `core/location/AGENTS.md` when permission or location workflows become independently complex.
 
 ## Stack
 
 - Kotlin Multiplatform, Compose Multiplatform, Android, iOS.
 - Ktor and `kotlinx.serialization` for HTTP and JSON.
-- Open-Meteo Forecast and Geocoding APIs. This project uses their non-commercial educational tier: no API key, required attribution, no commercial use.
+- Open-Meteo Forecast API for current weather. It is used in the non-commercial educational tier: no API key, required visible attribution, no commercial use.
+- Native reverse geocoding: Android `Geocoder`, iOS `CLGeocoder`.
 - Navigation 3 for Compose Multiplatform.
 - Gradle Kotlin DSL and `gradle/libs.versions.toml`. Dependency and plugin versions exist only in the version catalog.
-- `ktlint`, `detekt`, and relevant unit or UI tests are required for production changes.
+- `detekt` and relevant unit or UI tests for production changes.
 
-Do not add cache, persistent storage, favorites, settings, or another weather provider without an explicit task.
+Do not add cache, persistent storage, favorites, settings, a map, search, or another weather provider without an explicit task.
 
 ## Modules And Dependencies
 
-Project layout:
+Current layout:
 
 ```text
 app/
-core/<shared-concern>/
-feature/<feature-name>/
-  domain/
-  data/
-  ui/
+core/
+  location/
+  mvvm/
+feature/
+  reverse-geocoding/
+    domain/
+    data/
+  weather/
+    domain/
+    data/
+    ui/
 ```
 
-Examples of feature modules: city weather, map, city search.
-
-Dependency graph:
+Allowed dependencies:
 
 ```text
-data -> domain
-ui -> domain
-app -> core + feature modules
+app -> core:location, core:mvvm, feature:reverse-geocoding:{domain,data}, feature:weather:{domain,data,ui}
+feature:reverse-geocoding:data -> feature:reverse-geocoding:domain
+feature:weather:data -> core:location, feature:reverse-geocoding:domain, feature:weather:domain
+feature:weather:ui -> core:mvvm, feature:weather:domain
 ```
 
-`app` owns application composition: manual DI graph, Navigation 3 back stack, feature route serializers. Only listed edges are allowed. In particular, `ui` never depends on `data`, and one feature never reaches into another feature's `data` or `ui` module.
+`app` owns application composition: manual DI graph, Navigation 3 back stack, and feature route serializers. `ui` never depends on `data`; a feature never depends on another feature's `data` or `ui`; no unlisted edge is allowed.
 
-`data` may also depend on `core:*` and another feature's `domain` module. This is reserved for reusable platform services and feature contracts, such as location and reverse geocoding. `ui` still depends only on its own `domain` module and `core:mvvm`.
+Each `data` module exposes one manual DI module. Keep API clients, DTOs, repository implementations, and data-to-domain mappers `internal`. `app` assembles data modules and UI construction entrypoints. Add a UI component only when it provides a real construction or lifecycle boundary.
 
-`data` exposes one manual DI module per feature. Keep API clients, DTOs, repository implementations, and data-to-domain mappers `internal`. `ui` exposes a DI module; add an `internal` component only when runtime arguments or lifecycle-scoped objects are needed. `app` assembles those modules and components.
+Gradle dependency declarations:
+
+- `feature:*` modules use `implementation` only; `api` is prohibited.
+- `core:*` and `app` may use `api` only when a public API intentionally exposes that dependency. `core:mvvm` exposing `lifecycle.viewmodel` through public `BaseViewModel : ViewModel` is a valid example.
 
 ## UI And Navigation
 
@@ -64,41 +79,44 @@ Each screen uses UDF through `BaseViewModel<State, Event, Effect>`:
 - `SideEffect` is for one-shot commands, never persistent screen state.
 - Start loading from an explicit screen event. Do not make a network request from `ViewModel.init`.
 
-Navigation 3 rules:
+Navigation 3 target architecture:
 
 - Each feature owns an `@Serializable sealed interface` extending `NavKey`.
 - `app` owns a user-managed back stack and aggregates feature serializers.
 - Android and iOS use `SavedStateConfiguration` with a `SerializersModule`; do not rely on JVM reflection serialization.
 - Route arguments are stable value types. Do not pass ViewModels, repositories, DTOs, or Compose state through routes.
 
+The private `WeatherRoute` in `app` is a temporary MVP implementation. Do not copy that ownership model into new or changed features; introduce a feature-owned `NavKey` when extending weather navigation.
+
 ## Naming And Source Layout
 
 Root package: `com.sibgear.weather`.
 
-- Contracts: `WeatherRepository`, `GetWeatherInteractor`.
-- Implementations: `WeatherRepositoryImpl`, `WeatherDataModule`.
+- Contracts: `CurrentWeatherRepository`, `GetCurrentWeatherInteractor`.
+- Implementations: `CurrentWeatherRepositoryImpl`, `WeatherDataModule`.
 - UI: `WeatherViewModel`, `WeatherState`, `WeatherEvent`, `WeatherEffect`.
 - Mappers: `WeatherDataDomainMapper`, `WeatherUiMapper`.
 - Public types use explicit `public`; implementation details use explicit `internal`.
-- One public type per file. File name matches its primary type.
+- Keep one independent public contract or type per file; the file name matches its primary type. A sealed subtype or a closely coupled UI model may be co-located.
+- `feature/weather/domain/.../CurrentWeatherRepository.kt` currently contains several independent public types. Treat it as technical debt, not as a template; do not add another independent type there.
 - Prefer immutable `data class`, `data object`, `val`, expression bodies for simple forwarding methods, and named constructor arguments when an object has several dependencies.
+- In every non-empty `class`, `interface`, `object`, `sealed interface`, and `companion object` body, leave one blank line after `{` before the first declaration.
 
 Typical file shape:
 
 ```kotlin
-package com.sibgear.weather.feature.cityweather.domain
+package com.sibgear.weather.feature.weather.ui
 
-import com.sibgear.weather.feature.cityweather.domain.model.Weather
+import com.sibgear.weather.feature.weather.domain.CurrentWeather
+import kotlin.math.roundToInt
 
-public interface WeatherRepository {
-    public suspend fun getWeather(city: City): Result<Weather>
-}
+public class WeatherUiMapper {
 
-internal class WeatherRepositoryDecorator(
-    private val delegate: WeatherRepository,
-) : WeatherRepository {
-
-    override suspend fun getWeather(city: City): Result<Weather> = delegate.getWeather(city)
+    public fun map(source: CurrentWeather): WeatherUiModel =
+        WeatherUiModel(
+            cityName = source.cityName,
+            temperature = "${source.temperatureCelsius.roundToInt()} C",
+        )
 }
 ```
 
@@ -106,77 +124,72 @@ Order imports: Kotlin and AndroidX, third-party libraries, then project imports.
 
 ## Normative Examples
 
+The examples below are real patterns from this repository. Update them together with approved architectural changes.
+
 ### 1. Domain Contract And Interactor
 
 ```kotlin
-public interface WeatherRepository {
-    public suspend fun getWeather(city: City): Result<Weather>
+public interface CurrentWeatherRepository {
+
+    public suspend fun loadCurrentWeather(): Result<CurrentWeather>
 }
 
-public class GetWeatherInteractor(
-    private val repository: WeatherRepository,
+public class GetCurrentWeatherInteractor(
+    private val repository: CurrentWeatherRepository,
 ) {
 
-    public suspend operator fun invoke(city: City): Result<Weather> = repository.getWeather(city)
+    public suspend operator fun invoke(): Result<CurrentWeather> = repository.loadCurrentWeather()
 }
 ```
 
-### 2. Data Implementation And Data-Domain Mapper
+### 2. Repository Implementation
 
 ```kotlin
-internal class WeatherRepositoryImpl(
+internal class CurrentWeatherRepositoryImpl(
+    private val currentLocationProvider: CurrentLocationProvider,
+    private val resolveCityName: ResolveCityNameInteractor,
     private val api: OpenMeteoApi,
     private val mapper: WeatherDataDomainMapper,
-) : WeatherRepository {
+) : CurrentWeatherRepository {
 
-    override suspend fun getWeather(city: City): Result<Weather> = runCatching {
-        mapper.map(api.getForecast(latitude = city.latitude, longitude = city.longitude))
+    override suspend fun loadCurrentWeather(): Result<CurrentWeather> {
+        val coordinates = currentLocationProvider.currentLocation().getOrElse {
+            return Result.failure(CurrentWeatherLocationUnavailableException())
+        }
+
+        return runCatching {
+            val cityName = resolveCityName(coordinates.latitude, coordinates.longitude)?.value
+                ?: CURRENT_LOCATION_NAME
+            mapper.map(
+                source = api.getCurrentForecast(coordinates.latitude, coordinates.longitude),
+                cityName = cityName,
+            )
+        }
     }
-}
-
-internal class WeatherDataDomainMapper {
-
-    internal fun map(source: ForecastDto): Weather = Weather(
-        temperatureCelsius = source.current.temperatureCelsius,
-        weatherCode = source.current.weatherCode,
-    )
 }
 ```
 
-### 3. UDF ViewModel, State, And Event
+### 3. UDF ViewModel
 
 ```kotlin
-public sealed interface WeatherState : ViewState {
-    public data object Loading : WeatherState
-    public data class Content(val weather: WeatherUiModel) : WeatherState
-    public data object Error : WeatherState
-}
-
-public sealed interface WeatherEvent : ViewEvent {
-    public data object ScreenOpened : WeatherEvent
-    public data object RefreshClicked : WeatherEvent
-}
-
 public class WeatherViewModel(
-    private val city: City,
-    private val getWeather: GetWeatherInteractor,
+    private val getCurrentWeather: GetCurrentWeatherInteractor,
     private val mapper: WeatherUiMapper,
 ) : BaseViewModel<WeatherState, WeatherEvent, WeatherEffect>() {
 
-    private val mutableState = MutableStateFlow<WeatherState>(WeatherState.Loading)
+    private val mutableState: MutableStateFlow<WeatherState> = MutableStateFlow(WeatherState.LoadingLocation)
+
     override val state: StateFlow<WeatherState> = mutableState.asStateFlow()
 
     override suspend fun handleViewEvent(event: WeatherEvent) {
         when (event) {
             WeatherEvent.ScreenOpened,
-            WeatherEvent.RefreshClicked,
-            -> loadWeather()
-        }
-    }
+            WeatherEvent.RetryClicked,
+            -> emitEffect(WeatherEffect.RequestLocationPermission)
 
-    private suspend fun loadWeather() {
-        mutableState.value = WeatherState.Loading
-        mutableState.value = mapper(getWeather(city))
+            is WeatherEvent.LocationPermissionResult -> handlePermissionResult(event.granted)
+            WeatherEvent.SettingsClicked -> emitEffect(WeatherEffect.OpenAppSettings)
+        }
     }
 }
 ```
@@ -185,15 +198,15 @@ public class WeatherViewModel(
 
 ```kotlin
 public class WeatherUiMapper {
-    public operator fun invoke(source: Result<Weather>): WeatherState = source.fold(
-        onSuccess = { weather -> WeatherState.Content(weather.toUiModel()) },
-        onFailure = { WeatherState.Error },
-    )
 
-    private fun Weather.toUiModel(): WeatherUiModel = WeatherUiModel(
-        temperature = "${temperatureCelsius} C",
-        weatherCode = weatherCode,
-    )
+    public fun map(source: CurrentWeather): WeatherUiModel =
+        WeatherUiModel(
+            cityName = source.cityName,
+            temperature = "${source.temperatureCelsius.roundToInt()} C",
+            cloudCover = "${source.cloudCoverPercent} %",
+            windSpeed = "${source.windSpeedKilometersPerHour.roundToInt()} км/ч",
+            precipitation = "${source.precipitationMillimeters} мм",
+        )
 }
 ```
 
@@ -201,21 +214,28 @@ public class WeatherUiMapper {
 
 ```kotlin
 public object WeatherDataModule {
-    public fun provideRepository(client: HttpClient): WeatherRepository = WeatherRepositoryImpl(
-        api = OpenMeteoApi(client),
-        mapper = WeatherDataDomainMapper(),
-    )
+
+    public fun provide(
+        currentLocationProvider: CurrentLocationProvider,
+        resolveCityName: ResolveCityNameInteractor,
+    ): CurrentWeatherRepository =
+        CurrentWeatherRepositoryImpl(
+            currentLocationProvider = currentLocationProvider,
+            resolveCityName = resolveCityName,
+            api = OpenMeteoApi(createHttpClient()),
+            mapper = WeatherDataDomainMapper(),
+        )
 }
 
-internal class WeatherScreenComponent(
-    repository: WeatherRepository,
-    city: City,
+public class WeatherScreenComponent(
+    repository: CurrentWeatherRepository,
 ) {
-    internal val viewModel: WeatherViewModel = WeatherViewModel(
-        city = city,
-        getWeather = GetWeatherInteractor(repository),
-        mapper = WeatherUiMapper(),
-    )
+
+    public val viewModel: WeatherViewModel =
+        WeatherViewModel(
+            getCurrentWeather = GetCurrentWeatherInteractor(repository),
+            mapper = WeatherUiMapper(),
+        )
 }
 ```
 
@@ -236,7 +256,6 @@ For each production change:
 
 1. Keep module dependency rules and visibility boundaries.
 2. Add or update tests for domain/data mapping and ViewModel state; add Compose UI tests for user-visible behavior.
-3. Run relevant `ktlint`, `detekt`, tests, and compilation tasks configured by the project.
+3. Run relevant `detekt`, tests, and compilation tasks configured by the project.
 4. Check Open-Meteo attribution remains visible in the product when the provider is used.
-
-This repository currently has no Gradle scaffold. These examples are normative until production modules exist; replace or supplement them with local production examples after implementation begins.
+5. Update this file when the approved architecture, source patterns, or verification workflow changes.

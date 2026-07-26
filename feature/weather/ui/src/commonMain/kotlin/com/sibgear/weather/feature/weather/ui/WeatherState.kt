@@ -3,6 +3,7 @@ package com.sibgear.weather.feature.weather.ui
 import com.sibgear.weather.core.mvvm.ViewState
 
 public sealed interface WeatherState : ViewState {
+
     public data object LoadingLocation : WeatherState
 
     public data object LoadingWeather : WeatherState

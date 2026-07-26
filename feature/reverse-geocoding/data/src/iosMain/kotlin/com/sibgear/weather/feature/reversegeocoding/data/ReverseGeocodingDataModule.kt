@@ -11,11 +11,13 @@ import kotlin.coroutines.resume
 
 @OptIn(ExperimentalForeignApi::class)
 public object ReverseGeocodingDataModule {
+
     public fun provide(): ReverseGeocodingRepository = IosReverseGeocodingRepository()
 }
 
 @OptIn(ExperimentalForeignApi::class)
 internal class IosReverseGeocodingRepository : ReverseGeocodingRepository {
+
     override suspend fun resolveCityName(
         latitude: Double,
         longitude: Double,

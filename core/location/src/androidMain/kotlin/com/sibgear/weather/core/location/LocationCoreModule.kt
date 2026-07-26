@@ -9,12 +9,14 @@ import androidx.core.content.ContextCompat
 import androidx.core.location.LocationManagerCompat
 
 public object LocationCoreModule {
+
     public fun provide(context: Context): CurrentLocationProvider = AndroidCurrentLocationProvider(context)
 }
 
 internal class AndroidCurrentLocationProvider(
     private val context: Context,
 ) : CurrentLocationProvider {
+
     override suspend fun currentLocation(): Result<LocationCoordinates> {
         if (!hasCoarseLocationPermission()) {
             return Result.failure(LocationUnavailableException())

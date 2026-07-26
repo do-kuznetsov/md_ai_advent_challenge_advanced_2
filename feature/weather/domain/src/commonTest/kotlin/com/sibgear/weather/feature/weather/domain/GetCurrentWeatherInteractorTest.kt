@@ -4,6 +4,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 public class GetCurrentWeatherInteractorTest {
+
     @Test
     public fun returnsRepositoryValue() =
         kotlinx.coroutines.test.runTest {
@@ -12,6 +13,7 @@ public class GetCurrentWeatherInteractorTest {
                 GetCurrentWeatherInteractor(
                     repository =
                         object : CurrentWeatherRepository {
+
                             override suspend fun loadCurrentWeather(): Result<CurrentWeather> = Result.success(expected)
                         },
                 )

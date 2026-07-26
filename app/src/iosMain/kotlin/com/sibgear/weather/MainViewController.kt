@@ -26,7 +26,6 @@ import platform.UIKit.UIViewController
 import platform.darwin.NSObject
 
 @OptIn(ExperimentalForeignApi::class)
-@Suppress("ktlint:standard:function-naming")
 public fun MainViewController(): UIViewController {
     val locationProvider = LocationCoreModule.provide()
     val reverseGeocodingRepository = ReverseGeocodingDataModule.provide()
@@ -61,6 +60,7 @@ private class IosLocationPermissionHandler(
     private val onPermissionResult: (Boolean) -> Unit,
 ) : NSObject(),
     CLLocationManagerDelegateProtocol {
+
     private val locationManager: CLLocationManager = CLLocationManager()
 
     init {

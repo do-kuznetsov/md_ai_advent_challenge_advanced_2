@@ -9,12 +9,14 @@ import kotlinx.coroutines.withContext
 import java.util.Locale
 
 public object ReverseGeocodingDataModule {
+
     public fun provide(context: Context): ReverseGeocodingRepository = AndroidReverseGeocodingRepository(context)
 }
 
 internal class AndroidReverseGeocodingRepository(
     private val context: Context,
 ) : ReverseGeocodingRepository {
+
     @Suppress("DEPRECATION")
     override suspend fun resolveCityName(
         latitude: Double,
@@ -32,6 +34,7 @@ internal class AndroidReverseGeocodingRepository(
         }
 
     private companion object {
+
         const val MAX_RESULTS: Int = 1
     }
 }

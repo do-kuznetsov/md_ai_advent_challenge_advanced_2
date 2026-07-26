@@ -17,6 +17,7 @@ public interface ViewEvent
 public interface SideEffect
 
 public abstract class BaseViewModel<State : ViewState, Event : ViewEvent, Effect : SideEffect> : ViewModel() {
+
     public abstract val state: StateFlow<State>
 
     private val effectChannel: Channel<Effect> = Channel(Channel.BUFFERED)
@@ -44,6 +45,7 @@ public abstract class BaseViewModel<State : ViewState, Event : ViewEvent, Effect
     }
 
     private companion object {
+
         const val EVENT_BUFFER_CAPACITY: Int = 8
     }
 }

@@ -17,7 +17,6 @@ import kotlinx.serialization.modules.subclass
 @Serializable
 private data object WeatherRoute : NavKey
 
-@Suppress("ktlint:standard:function-naming")
 @Composable
 public fun WeatherApp(
     viewModel: WeatherViewModel,
