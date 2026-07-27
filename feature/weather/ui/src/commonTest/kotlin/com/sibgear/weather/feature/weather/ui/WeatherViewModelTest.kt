@@ -7,7 +7,10 @@ import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -30,7 +33,7 @@ public class WeatherViewModelTest {
             advanceUntilIdle()
 
             assertEquals(WeatherEffect.RequestLocationPermission, effect.await())
-            assertEquals(WeatherState.LoadingLocation, viewModel.state.value)
+            assertEquals(WeatherState.LoadingLocation(), viewModel.state.value)
         } finally {
             Dispatchers.resetMain()
         }
@@ -107,15 +110,51 @@ public class WeatherViewModelTest {
         }
     }
 
+    @Test
+    public fun cityQueryChangedUpdatesState(): Unit = runTest {
+        Dispatchers.setMain(StandardTestDispatcher(testScheduler))
+        try {
+            val viewModel = createViewModel()
+
+            viewModel.onViewEventOccurred(WeatherEvent.CityQueryChanged("Томск"))
+            advanceUntilIdle()
+
+            assertEquals("Томск", viewModel.state.value.cityQuery)
+        } finally {
+            Dispatchers.resetMain()
+        }
+    }
+
+    @Test
+    public fun blankCitySearchSubmittedDoesNotLoadWeatherOrRequestPermission(): Unit = runTest {
+        Dispatchers.setMain(StandardTestDispatcher(testScheduler))
+        try {
+            val repository = CountingWeatherRepository(Result.success(createWeather()))
+            val viewModel = createViewModel(repository = repository)
+            val effects = mutableListOf<WeatherEffect>()
+            backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+                viewModel.effect.toList(effects)
+            }
+
+            viewModel.onViewEventOccurred(WeatherEvent.CityQueryChanged("   "))
+            viewModel.onViewEventOccurred(WeatherEvent.CitySearchSubmitted)
+            advanceUntilIdle()
+
+            assertEquals(0, repository.loadCount)
+            assertEquals(emptyList(), effects)
+            assertEquals(WeatherState.LoadingLocation(cityQuery = "   "), viewModel.state.value)
+        } finally {
+            Dispatchers.resetMain()
+        }
+    }
+
     private fun createViewModel(
         weatherResult: Result<CurrentWeather> = Result.success(createWeather()),
+        repository: CurrentWeatherRepository = CountingWeatherRepository(weatherResult),
     ): WeatherViewModel =
         WeatherViewModel(
             getCurrentWeather = GetCurrentWeatherInteractor(
-                repository = object : CurrentWeatherRepository {
-                    override suspend fun loadCurrentWeather(): Result<CurrentWeather> =
-                        weatherResult
-                },
+                repository = repository,
             ),
             mapper = WeatherUiMapper(),
         )
@@ -128,4 +167,17 @@ public class WeatherViewModelTest {
             windSpeedKilometersPerHour = 12.6,
             precipitationMillimeters = 0.4,
         )
+
+    private class CountingWeatherRepository(
+        private val weatherResult: Result<CurrentWeather>,
+    ) : CurrentWeatherRepository {
+
+        var loadCount: Int = 0
+            private set
+
+        override suspend fun loadCurrentWeather(): Result<CurrentWeather> {
+            loadCount += 1
+            return weatherResult
+        }
+    }
 }

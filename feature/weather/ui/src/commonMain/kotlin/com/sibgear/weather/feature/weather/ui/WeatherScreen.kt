@@ -8,12 +8,15 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.Button
 import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.material.Divider
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Surface
 import androidx.compose.material.Text
+import androidx.compose.material.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -21,6 +24,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.flow.collect
 
@@ -40,23 +44,73 @@ public fun WeatherScreen(
     }
 
     Surface(modifier = modifier.fillMaxSize()) {
-        when (val currentState = state) {
-            WeatherState.LoadingLocation -> LoadingContent("Определяем местоположение")
-            WeatherState.LoadingWeather -> LoadingContent("Получаем погоду")
-            is WeatherState.Content -> WeatherContent(currentState.weather)
-            is WeatherState.Error -> ErrorContent(
-                state = currentState,
-                onRetryClicked = { viewModel.onViewEventOccurred(WeatherEvent.RetryClicked) },
-                onSettingsClicked = { viewModel.onViewEventOccurred(WeatherEvent.SettingsClicked) },
+        Column(
+            modifier = Modifier.fillMaxSize().padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            CitySearchContent(
+                cityQuery = state.cityQuery,
+                onCityQueryChanged = { viewModel.onViewEventOccurred(WeatherEvent.CityQueryChanged(it)) },
+                onCitySearchSubmitted = { viewModel.onViewEventOccurred(WeatherEvent.CitySearchSubmitted) },
             )
+
+            when (val currentState = state) {
+                is WeatherState.LoadingLocation -> LoadingContent(
+                    message = "Определяем местоположение",
+                    modifier = Modifier.weight(1f),
+                )
+                is WeatherState.LoadingWeather -> LoadingContent(
+                    message = "Получаем погоду",
+                    modifier = Modifier.weight(1f),
+                )
+                is WeatherState.Content -> WeatherContent(
+                    weather = currentState.weather,
+                    modifier = Modifier.weight(1f),
+                )
+                is WeatherState.Error -> ErrorContent(
+                    state = currentState,
+                    onRetryClicked = { viewModel.onViewEventOccurred(WeatherEvent.RetryClicked) },
+                    onSettingsClicked = { viewModel.onViewEventOccurred(WeatherEvent.SettingsClicked) },
+                    modifier = Modifier.weight(1f),
+                )
+            }
         }
     }
 }
 
 @Composable
-private fun LoadingContent(message: String) {
+private fun CitySearchContent(
+    cityQuery: String,
+    onCityQueryChanged: (String) -> Unit,
+    onCitySearchSubmitted: () -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        TextField(
+            value = cityQuery,
+            onValueChange = onCityQueryChanged,
+            modifier = Modifier.weight(1f),
+            label = { Text("Город") },
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+            keyboardActions = KeyboardActions(onSearch = { onCitySearchSubmitted() }),
+        )
+        Button(
+            onClick = onCitySearchSubmitted,
+            enabled = cityQuery.isNotBlank(),
+        ) {
+            Text("Найти")
+        }
+    }
+}
+
+@Composable
+private fun LoadingContent(message: String, modifier: Modifier = Modifier) {
     Column(
-        modifier = Modifier.fillMaxSize().padding(24.dp),
+        modifier = modifier.fillMaxSize(),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
@@ -67,9 +121,9 @@ private fun LoadingContent(message: String) {
 }
 
 @Composable
-private fun WeatherContent(weather: WeatherUiModel) {
+private fun WeatherContent(weather: WeatherUiModel, modifier: Modifier = Modifier) {
     Column(
-        modifier = Modifier.fillMaxSize().padding(24.dp),
+        modifier = modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Text(text = weather.cityName, style = MaterialTheme.typography.h5)
@@ -100,9 +154,10 @@ private fun ErrorContent(
     state: WeatherState.Error,
     onRetryClicked: () -> Unit,
     onSettingsClicked: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     Column(
-        modifier = Modifier.fillMaxSize().padding(24.dp),
+        modifier = modifier.fillMaxSize(),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {

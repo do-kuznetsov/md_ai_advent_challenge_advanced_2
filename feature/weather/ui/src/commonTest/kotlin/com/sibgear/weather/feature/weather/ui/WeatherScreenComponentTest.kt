@@ -26,6 +26,6 @@ public class WeatherScreenComponentTest {
         )
 
         assertIs<WeatherViewModel>(component.viewModel)
-        assertEquals(WeatherState.LoadingLocation, component.viewModel.state.value)
+        assertEquals(WeatherState.LoadingLocation(), component.viewModel.state.value)
     }
 }

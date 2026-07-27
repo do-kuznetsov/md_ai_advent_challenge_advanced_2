@@ -6,6 +6,12 @@ public sealed interface WeatherEvent {
 
     public data object RetryClicked : WeatherEvent
 
+    public data class CityQueryChanged(
+        public val query: String,
+    ) : WeatherEvent
+
+    public data object CitySearchSubmitted : WeatherEvent
+
     public data class LocationPermissionResult(
         public val granted: Boolean,
         public val permanentlyDenied: Boolean,
