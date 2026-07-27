@@ -123,7 +123,8 @@ Current user-visible flow:
 - manual city input uses `Найти`, Open-Meteo Geocoding API, and loads weather for the first city candidate;
 - successful manual city selection is saved to `Недавние города`;
 - selected manual/history/favorite city weather can be added to or removed from `Избранное`;
-- `Карта` is a separate app tab and currently shows a placeholder text `Карта`;
+- `Карта` is a separate app tab with an interactive no-key map surface;
+- Android uses MapLibre Compose with the default demo style; iOS/JVM use an in-app interactive fallback map until native MapLibre framework setup is added;
 - content screen shows city or current-location label, weather metrics, weather icons, and `Данные: Open-Meteo.com`;
 - settings action opens platform app settings when permission is permanently denied.
 
@@ -231,7 +232,7 @@ Path:
 
 Pass when history survives within the run, favorites can be added and removed, and favorite/history selection loads city weather.
 
-### 5. Map Tab Placeholder
+### 5. Map Tab
 
 Path:
 
@@ -239,14 +240,17 @@ Path:
 2. Capture the tab row.
 3. Tap `Карта`.
 4. Capture the map tab.
-5. Verify the placeholder text `Карта` is visible.
-6. Tap `Список`.
-7. Capture the list tab.
-8. Verify the weather screen surface is visible again: `Город`, `Найти`, and the current weather/loading/error content.
+5. Pan the map surface.
+6. Capture the panned map.
+7. Pinch or use platform zoom gesture when available.
+8. Capture the zoomed map.
+9. Tap `Список`.
+10. Capture the list tab.
+11. Verify the weather screen surface is visible again: `Город`, `Найти`, and the current weather/loading/error content.
 
-Pass when tab switching works and the current placeholder is visible.
+Pass when tab switching works and the map surface responds to pan or zoom.
 
-Future map tasks must update this scenario when the placeholder becomes an interactive map.
+Future map-selection tasks must update this scenario when tapping a map point loads weather.
 
 ## Execution Rules
 

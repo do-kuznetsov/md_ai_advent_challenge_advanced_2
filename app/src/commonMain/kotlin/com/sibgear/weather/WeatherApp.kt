@@ -1,9 +1,7 @@
 package com.sibgear.weather
 
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Tab
@@ -16,6 +14,7 @@ import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.ui.NavDisplay
 import androidx.savedstate.serialization.SavedStateConfiguration
 import com.sibgear.weather.feature.weather.ui.WeatherEffect
+import com.sibgear.weather.feature.weather.ui.WeatherMapScreen
 import com.sibgear.weather.feature.weather.ui.WeatherRoute
 import com.sibgear.weather.feature.weather.ui.WeatherScreen
 import com.sibgear.weather.feature.weather.ui.WeatherScreenComponent
@@ -62,7 +61,7 @@ public fun WeatherApp(
                 modifier = Modifier.weight(1f),
                 entryProvider = entryProvider {
                     entry<WeatherRoute.Map> {
-                        MapPlaceholder(modifier = Modifier.fillMaxSize())
+                        WeatherMapScreen(modifier = Modifier.fillMaxSize())
                     }
                     entry<WeatherRoute.List> {
                         WeatherScreen(
@@ -81,13 +80,3 @@ private val WeatherRoute.title: String
         WeatherRoute.Map -> "Карта"
         WeatherRoute.List -> "Список"
     }
-
-@Composable
-private fun MapPlaceholder(modifier: Modifier = Modifier) {
-    Box(
-        modifier = modifier,
-        contentAlignment = Alignment.Center,
-    ) {
-        Text("Карта")
-    }
-}
