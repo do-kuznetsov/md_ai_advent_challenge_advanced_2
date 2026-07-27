@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.kotlin.multiplatform.library)
     alias(libs.plugins.detekt)
     alias(libs.plugins.kotlin.multiplatform)
+    alias(libs.plugins.kotlinx.kover)
 }
 
 kotlin {
@@ -10,6 +11,7 @@ kotlin {
         compileSdk = 37
         minSdk = 26
     }
+    jvm()
     iosArm64()
     iosSimulatorArm64()
 }

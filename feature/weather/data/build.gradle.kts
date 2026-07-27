@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.detekt)
     alias(libs.plugins.kotlin.multiplatform)
     alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.kotlinx.kover)
 }
 
 kotlin {
@@ -11,6 +12,7 @@ kotlin {
         compileSdk = 37
         minSdk = 26
     }
+    jvm()
     iosArm64()
     iosSimulatorArm64()
 
@@ -25,6 +27,9 @@ kotlin {
             implementation(libs.kotlinx.serialization.json)
         }
         androidMain.dependencies {
+            implementation(libs.ktor.client.okhttp)
+        }
+        jvmMain.dependencies {
             implementation(libs.ktor.client.okhttp)
         }
         iosMain.dependencies {
