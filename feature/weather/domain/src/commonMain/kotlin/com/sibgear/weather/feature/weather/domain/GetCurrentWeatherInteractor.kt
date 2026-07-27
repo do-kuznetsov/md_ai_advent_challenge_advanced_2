@@ -5,4 +5,7 @@ public class GetCurrentWeatherInteractor(
 ) {
 
     public suspend operator fun invoke(): Result<CurrentWeather> = repository.loadCurrentWeather()
+
+    public suspend operator fun invoke(location: SelectedWeatherLocation): Result<CurrentWeather> =
+        repository.loadWeather(location)
 }

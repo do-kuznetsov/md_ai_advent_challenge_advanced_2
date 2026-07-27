@@ -38,4 +38,31 @@ public class GetCurrentWeatherInteractorTest {
 
         assertSame(failure, interactor().exceptionOrNull())
     }
+
+    @Test
+    public fun returnsRepositoryWeatherForSelectedLocation(): Unit = runTest {
+        val location = SelectedWeatherLocation.City(
+            name = "Москва",
+            latitude = 55.75,
+            longitude = 37.62,
+        )
+        val weather = CurrentWeather(
+            cityName = "Москва",
+            temperatureCelsius = 21.0,
+            cloudCoverPercent = 10,
+            windSpeedKilometersPerHour = 5.0,
+            precipitationMillimeters = 0.0,
+        )
+        val interactor = GetCurrentWeatherInteractor(
+            repository = object : CurrentWeatherRepository {
+                override suspend fun loadCurrentWeather(): Result<CurrentWeather> =
+                    Result.failure(IllegalStateException("current location is not expected"))
+
+                override suspend fun loadWeather(location: SelectedWeatherLocation): Result<CurrentWeather> =
+                    Result.success(weather)
+            },
+        )
+
+        assertEquals(weather, interactor(location).getOrThrow())
+    }
 }
