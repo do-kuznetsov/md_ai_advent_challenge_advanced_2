@@ -1,7 +1,9 @@
 package com.sibgear.weather.feature.weather.ui
 
 import com.sibgear.weather.core.mvvm.BaseViewModel
+import com.sibgear.weather.feature.weather.domain.CityHistoryEntry
 import com.sibgear.weather.feature.weather.domain.GetCurrentWeatherInteractor
+import com.sibgear.weather.feature.weather.domain.SaveCityHistoryInteractor
 import com.sibgear.weather.feature.weather.domain.SearchCitiesInteractor
 import com.sibgear.weather.feature.weather.domain.SelectedWeatherLocation
 import com.sibgear.weather.feature.weather.domain.WeatherCityCandidate
@@ -12,6 +14,8 @@ import kotlinx.coroutines.flow.asStateFlow
 public class WeatherViewModel(
     private val getCurrentWeather: GetCurrentWeatherInteractor,
     private val searchCities: SearchCitiesInteractor,
+    private val saveCityHistory: SaveCityHistoryInteractor,
+    private val currentTimeMillis: () -> Long,
     private val mapper: WeatherUiMapper,
 ) : BaseViewModel<WeatherState, WeatherEvent, WeatherEffect>() {
 
@@ -68,10 +72,27 @@ public class WeatherViewModel(
             longitude = candidate.longitude,
         )
 
-        mutableState.value = getCurrentWeather(location).fold(
-            onSuccess = { WeatherState.Content(weather = mapper.map(it), cityQuery = query) },
-            onFailure = { createCitySearchError(query) },
-        )
+        val weather = getCurrentWeather(location).getOrElse {
+            mutableState.value = createCitySearchError(query)
+            return
+        }
+
+        mutableState.value = WeatherState.Content(weather = mapper.map(weather), cityQuery = query)
+        saveCityToHistory(candidate)
+    }
+
+    private suspend fun saveCityToHistory(candidate: WeatherCityCandidate) {
+        runCatching {
+            saveCityHistory(
+                CityHistoryEntry(
+                    name = candidate.name,
+                    country = candidate.country,
+                    latitude = candidate.latitude,
+                    longitude = candidate.longitude,
+                    selectedAtEpochMillis = currentTimeMillis(),
+                ),
+            )
+        }
     }
 
     private fun createCitySearchError(query: String): WeatherState.Error =

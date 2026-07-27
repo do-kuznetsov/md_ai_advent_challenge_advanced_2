@@ -3,6 +3,8 @@ package com.sibgear.weather.feature.weather.ui
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import com.sibgear.weather.feature.weather.domain.CityHistoryEntry
+import com.sibgear.weather.feature.weather.domain.CityHistoryRepository
 import com.sibgear.weather.feature.weather.domain.CitySearchRepository
 import com.sibgear.weather.feature.weather.domain.CurrentWeather
 import com.sibgear.weather.feature.weather.domain.CurrentWeatherRepository
@@ -29,6 +31,14 @@ public class WeatherScreenComponentTest {
                 override suspend fun searchCities(query: String): Result<List<WeatherCityCandidate>> =
                     Result.success(emptyList())
             },
+            cityHistoryRepository = object : CityHistoryRepository {
+                override suspend fun saveCity(entry: CityHistoryEntry): Result<Unit> =
+                    Result.success(Unit)
+
+                override suspend fun recentCities(limit: Int): Result<List<CityHistoryEntry>> =
+                    Result.success(emptyList())
+            },
+            currentTimeMillis = { 1_723_000_000_000 },
         )
 
         assertIs<WeatherViewModel>(component.viewModel)

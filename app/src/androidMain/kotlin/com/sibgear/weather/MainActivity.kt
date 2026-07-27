@@ -13,6 +13,7 @@ import androidx.core.content.ContextCompat
 import com.sibgear.weather.core.location.LocationCoreModule
 import com.sibgear.weather.feature.reversegeocoding.data.ReverseGeocodingDataModule
 import com.sibgear.weather.feature.weather.data.WeatherDataModule
+import com.sibgear.weather.feature.weather.data.provideAndroidCityHistoryRepository
 import com.sibgear.weather.feature.weather.ui.WeatherEffect
 import com.sibgear.weather.feature.weather.ui.WeatherEvent
 import com.sibgear.weather.feature.weather.ui.WeatherScreenComponent
@@ -40,6 +41,8 @@ public class MainActivity : ComponentActivity() {
                 reverseGeocodingRepository = ReverseGeocodingDataModule.provide(this),
             ),
             citySearchRepository = WeatherDataModule.provideCitySearchRepository(),
+            cityHistoryRepository = WeatherDataModule.provideAndroidCityHistoryRepository(this),
+            currentTimeMillis = { System.currentTimeMillis() },
         )
         setContent {
             WeatherApp(component = component, onEffect = ::handleEffect)

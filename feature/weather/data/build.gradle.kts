@@ -35,6 +35,9 @@ kotlin {
         jvmMain.dependencies {
             implementation(libs.ktor.client.okhttp)
         }
+        jvmTest.dependencies {
+            implementation(libs.sqldelight.sqlite.driver)
+        }
         iosMain.dependencies {
             implementation(libs.ktor.client.darwin)
             implementation(libs.sqldelight.native.driver)

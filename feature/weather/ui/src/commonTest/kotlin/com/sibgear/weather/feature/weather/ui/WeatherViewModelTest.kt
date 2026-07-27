@@ -15,10 +15,13 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import com.sibgear.weather.feature.weather.domain.CityHistoryEntry
+import com.sibgear.weather.feature.weather.domain.CityHistoryRepository
 import com.sibgear.weather.feature.weather.domain.CitySearchRepository
 import com.sibgear.weather.feature.weather.domain.CurrentWeather
 import com.sibgear.weather.feature.weather.domain.CurrentWeatherRepository
 import com.sibgear.weather.feature.weather.domain.GetCurrentWeatherInteractor
+import com.sibgear.weather.feature.weather.domain.SaveCityHistoryInteractor
 import com.sibgear.weather.feature.weather.domain.SearchCitiesInteractor
 import com.sibgear.weather.feature.weather.domain.SelectedWeatherLocation
 import com.sibgear.weather.feature.weather.domain.WeatherCityCandidate
@@ -196,6 +199,86 @@ public class WeatherViewModelTest {
     }
 
     @Test
+    public fun citySearchSubmittedSavesFirstCityCandidateAfterWeatherSuccess(): Unit = runTest {
+        Dispatchers.setMain(StandardTestDispatcher(testScheduler))
+        try {
+            val cityHistoryRepository = RecordingCityHistoryRepository()
+            val viewModel = createViewModel(
+                weatherResult = Result.success(createWeather(cityName = "Москва")),
+                citySearchRepository = CountingCitySearchRepository(Result.success(createCityCandidates())),
+                cityHistoryRepository = cityHistoryRepository,
+            )
+
+            viewModel.onViewEventOccurred(WeatherEvent.CityQueryChanged("Москва"))
+            viewModel.onViewEventOccurred(WeatherEvent.CitySearchSubmitted)
+            advanceUntilIdle()
+
+            assertIs<WeatherState.Content>(viewModel.state.value)
+            assertEquals(
+                listOf(
+                    CityHistoryEntry(
+                        name = "Москва",
+                        country = "Россия",
+                        latitude = 55.7558,
+                        longitude = 37.6173,
+                        selectedAtEpochMillis = TEST_SELECTED_AT_EPOCH_MILLIS,
+                    ),
+                ),
+                cityHistoryRepository.savedEntries,
+            )
+        } finally {
+            Dispatchers.resetMain()
+        }
+    }
+
+    @Test
+    public fun citySearchSubmittedDoesNotSaveCityWhenWeatherFails(): Unit = runTest {
+        Dispatchers.setMain(StandardTestDispatcher(testScheduler))
+        try {
+            val cityHistoryRepository = RecordingCityHistoryRepository()
+            val viewModel = createViewModel(
+                weatherResult = Result.failure(IllegalStateException("network failed")),
+                citySearchRepository = CountingCitySearchRepository(Result.success(createCityCandidates())),
+                cityHistoryRepository = cityHistoryRepository,
+            )
+
+            viewModel.onViewEventOccurred(WeatherEvent.CityQueryChanged("Москва"))
+            viewModel.onViewEventOccurred(WeatherEvent.CitySearchSubmitted)
+            advanceUntilIdle()
+
+            assertIs<WeatherState.Error>(viewModel.state.value)
+            assertEquals(emptyList(), cityHistoryRepository.savedEntries)
+        } finally {
+            Dispatchers.resetMain()
+        }
+    }
+
+    @Test
+    public fun citySearchSubmittedKeepsWeatherContentWhenCityHistorySaveFails(): Unit = runTest {
+        Dispatchers.setMain(StandardTestDispatcher(testScheduler))
+        try {
+            val cityHistoryRepository = RecordingCityHistoryRepository(
+                saveResult = Result.failure(IllegalStateException("storage failed")),
+            )
+            val viewModel = createViewModel(
+                weatherResult = Result.success(createWeather(cityName = "Москва")),
+                citySearchRepository = CountingCitySearchRepository(Result.success(createCityCandidates())),
+                cityHistoryRepository = cityHistoryRepository,
+            )
+
+            viewModel.onViewEventOccurred(WeatherEvent.CityQueryChanged("Москва"))
+            viewModel.onViewEventOccurred(WeatherEvent.CitySearchSubmitted)
+            advanceUntilIdle()
+
+            val state = assertIs<WeatherState.Content>(viewModel.state.value)
+            assertEquals("Москва", state.weather.cityName)
+            assertEquals(1, cityHistoryRepository.savedEntries.size)
+        } finally {
+            Dispatchers.resetMain()
+        }
+    }
+
+    @Test
     public fun citySearchSubmittedShowsRetryableErrorWhenNoCandidatesFound(): Unit = runTest {
         Dispatchers.setMain(StandardTestDispatcher(testScheduler))
         try {
@@ -224,6 +307,8 @@ public class WeatherViewModelTest {
         weatherResult: Result<CurrentWeather> = Result.success(createWeather()),
         repository: CurrentWeatherRepository = CountingWeatherRepository(weatherResult),
         citySearchRepository: CitySearchRepository = CountingCitySearchRepository(Result.success(emptyList())),
+        cityHistoryRepository: CityHistoryRepository = RecordingCityHistoryRepository(),
+        currentTimeMillis: () -> Long = { TEST_SELECTED_AT_EPOCH_MILLIS },
     ): WeatherViewModel =
         WeatherViewModel(
             getCurrentWeather = GetCurrentWeatherInteractor(
@@ -232,6 +317,10 @@ public class WeatherViewModelTest {
             searchCities = SearchCitiesInteractor(
                 repository = citySearchRepository,
             ),
+            saveCityHistory = SaveCityHistoryInteractor(
+                repository = cityHistoryRepository,
+            ),
+            currentTimeMillis = currentTimeMillis,
             mapper = WeatherUiMapper(),
         )
 
@@ -300,5 +389,25 @@ public class WeatherViewModelTest {
             lastQuery = query
             return result
         }
+    }
+
+    private class RecordingCityHistoryRepository(
+        private val saveResult: Result<Unit> = Result.success(Unit),
+    ) : CityHistoryRepository {
+
+        val savedEntries: MutableList<CityHistoryEntry> = mutableListOf()
+
+        override suspend fun saveCity(entry: CityHistoryEntry): Result<Unit> {
+            savedEntries += entry
+            return saveResult
+        }
+
+        override suspend fun recentCities(limit: Int): Result<List<CityHistoryEntry>> =
+            Result.success(savedEntries.take(limit))
+    }
+
+    private companion object {
+
+        const val TEST_SELECTED_AT_EPOCH_MILLIS: Long = 1_723_000_000_000
     }
 }
