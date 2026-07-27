@@ -27,7 +27,18 @@ public sealed interface WeatherState {
 public data class WeatherUiModel(
     public val cityName: String,
     public val temperature: String,
+    public val conditionIcon: WeatherIcon,
     public val cloudCover: String,
+    public val cloudCoverIcon: WeatherIcon,
     public val windSpeed: String,
+    public val windSpeedIcon: WeatherIcon,
     public val precipitation: String,
+    public val precipitationIcon: WeatherIcon,
 )
+
+public enum class WeatherIcon {
+    Sunny,
+    Cloud,
+    Wind,
+    Precipitation,
+}

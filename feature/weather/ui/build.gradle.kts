@@ -23,6 +23,7 @@ kotlin {
             implementation(project(":feature:weather:domain"))
             implementation(compose.foundation)
             implementation(compose.material)
+            implementation(compose.materialIconsExtended)
             implementation(compose.runtime)
             implementation(compose.ui)
             implementation(libs.jetbrains.lifecycle.runtime.compose)

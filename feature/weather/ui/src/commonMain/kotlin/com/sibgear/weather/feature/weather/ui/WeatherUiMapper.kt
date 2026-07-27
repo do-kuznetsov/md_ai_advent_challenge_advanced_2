@@ -9,8 +9,24 @@ public class WeatherUiMapper {
         WeatherUiModel(
             cityName = source.cityName,
             temperature = "${source.temperatureCelsius.roundToInt()} C",
+            conditionIcon = source.mapConditionIcon(),
             cloudCover = "${source.cloudCoverPercent} %",
+            cloudCoverIcon = source.mapConditionIcon(),
             windSpeed = "${source.windSpeedKilometersPerHour.roundToInt()} км/ч",
+            windSpeedIcon = WeatherIcon.Wind,
             precipitation = "${source.precipitationMillimeters} мм",
+            precipitationIcon = WeatherIcon.Precipitation,
         )
+
+    private fun CurrentWeather.mapConditionIcon(): WeatherIcon =
+        if (cloudCoverPercent < CLOUDY_CLOUD_COVER_PERCENT) {
+            WeatherIcon.Sunny
+        } else {
+            WeatherIcon.Cloud
+        }
+
+    private companion object {
+
+        private const val CLOUDY_CLOUD_COVER_PERCENT: Int = 50
+    }
 }

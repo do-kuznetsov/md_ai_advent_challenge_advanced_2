@@ -8,21 +8,30 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.Button
 import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.material.Divider
+import androidx.compose.material.Icon
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Surface
 import androidx.compose.material.Text
 import androidx.compose.material.TextField
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Air
+import androidx.compose.material.icons.filled.Cloud
+import androidx.compose.material.icons.filled.Opacity
+import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
@@ -127,27 +136,60 @@ private fun WeatherContent(weather: WeatherUiModel, modifier: Modifier = Modifie
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Text(text = weather.cityName, style = MaterialTheme.typography.h5)
-        Text(
-            text = weather.temperature,
-            style = MaterialTheme.typography.h2,
-            fontWeight = FontWeight.Bold,
-        )
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            WeatherIconView(icon = weather.conditionIcon, size = 48.dp)
+            Text(
+                text = weather.temperature,
+                style = MaterialTheme.typography.h2,
+                fontWeight = FontWeight.Bold,
+            )
+        }
         Divider()
-        WeatherMetric(label = "Облачность", value = weather.cloudCover)
-        WeatherMetric(label = "Ветер", value = weather.windSpeed)
-        WeatherMetric(label = "Осадки", value = weather.precipitation)
+        WeatherMetric(label = "Облачность", value = weather.cloudCover, icon = weather.cloudCoverIcon)
+        WeatherMetric(label = "Ветер", value = weather.windSpeed, icon = weather.windSpeedIcon)
+        WeatherMetric(label = "Осадки", value = weather.precipitation, icon = weather.precipitationIcon)
         Spacer(Modifier.weight(1f))
         Text(text = "Данные: Open-Meteo.com", style = MaterialTheme.typography.caption)
     }
 }
 
 @Composable
-private fun WeatherMetric(label: String, value: String) {
-    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-        Text(text = label, style = MaterialTheme.typography.body1)
+private fun WeatherMetric(label: String, value: String, icon: WeatherIcon) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            WeatherIconView(icon = icon, size = 24.dp)
+            Text(text = label, style = MaterialTheme.typography.body1)
+        }
         Text(text = value, style = MaterialTheme.typography.body1, fontWeight = FontWeight.Medium)
     }
 }
+
+@Composable
+private fun WeatherIconView(icon: WeatherIcon, size: Dp) {
+    Icon(
+        imageVector = icon.imageVector(),
+        contentDescription = null,
+        modifier = Modifier.size(size),
+    )
+}
+
+private fun WeatherIcon.imageVector(): ImageVector =
+    when (this) {
+        WeatherIcon.Sunny -> Icons.Filled.WbSunny
+        WeatherIcon.Cloud -> Icons.Filled.Cloud
+        WeatherIcon.Wind -> Icons.Filled.Air
+        WeatherIcon.Precipitation -> Icons.Filled.Opacity
+    }
 
 @Composable
 private fun ErrorContent(
