@@ -10,37 +10,26 @@ import androidx.compose.material.Tab
 import androidx.compose.material.TabRow
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.ui.NavDisplay
 import androidx.savedstate.serialization.SavedStateConfiguration
 import com.sibgear.weather.feature.weather.ui.WeatherEffect
+import com.sibgear.weather.feature.weather.ui.WeatherRoute
 import com.sibgear.weather.feature.weather.ui.WeatherScreen
 import com.sibgear.weather.feature.weather.ui.WeatherScreenComponent
-import kotlinx.serialization.Serializable
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.polymorphic
 import kotlinx.serialization.modules.subclass
 
-@Serializable
-private data object WeatherRoute : NavKey
-
-private enum class WeatherAppTab(
-    val title: String,
-) {
-    Map(title = "Карта"),
-    List(title = "Список"),
-}
+private val weatherAppRoutes: List<WeatherRoute> = listOf(WeatherRoute.Map, WeatherRoute.List)
 
 private val navigationSavedStateConfiguration: SavedStateConfiguration = SavedStateConfiguration {
     serializersModule = SerializersModule {
         polymorphic(NavKey::class) {
-            subclass(WeatherRoute::class, WeatherRoute.serializer())
+            subclass(WeatherRoute.List::class, WeatherRoute.List.serializer())
+            subclass(WeatherRoute.Map::class, WeatherRoute.Map.serializer())
         }
     }
 }
@@ -50,40 +39,48 @@ public fun WeatherApp(
     component: WeatherScreenComponent,
     onEffect: (WeatherEffect) -> Unit,
 ) {
-    val backStack = rememberNavBackStack(navigationSavedStateConfiguration, WeatherRoute)
-    var selectedTab by remember { mutableStateOf(WeatherAppTab.List) }
+    val backStack = rememberNavBackStack(navigationSavedStateConfiguration, WeatherRoute.List)
+    val selectedRoute = backStack.lastOrNull() as? WeatherRoute ?: WeatherRoute.List
 
     MaterialTheme {
         Column(modifier = Modifier.fillMaxSize()) {
-            TabRow(selectedTabIndex = WeatherAppTab.entries.indexOf(selectedTab)) {
-                WeatherAppTab.entries.forEach { tab ->
+            TabRow(selectedTabIndex = weatherAppRoutes.indexOf(selectedRoute)) {
+                weatherAppRoutes.forEach { route ->
                     Tab(
-                        selected = tab == selectedTab,
-                        onClick = { selectedTab = tab },
-                        text = { Text(tab.title) },
+                        selected = route == selectedRoute,
+                        onClick = {
+                            backStack.clear()
+                            backStack.add(route)
+                        },
+                        text = { Text(route.title) },
                     )
                 }
             }
 
-            Box(modifier = Modifier.weight(1f)) {
-                when (selectedTab) {
-                    WeatherAppTab.Map -> MapPlaceholder(modifier = Modifier.fillMaxSize())
-                    WeatherAppTab.List -> NavDisplay(
-                        backStack = backStack,
-                        entryProvider = entryProvider {
-                            entry<WeatherRoute> {
-                                WeatherScreen(
-                                    viewModel = component.viewModel,
-                                    onEffect = onEffect,
-                                )
-                            }
-                        },
-                    )
-                }
-            }
+            NavDisplay(
+                backStack = backStack,
+                modifier = Modifier.weight(1f),
+                entryProvider = entryProvider {
+                    entry<WeatherRoute.Map> {
+                        MapPlaceholder(modifier = Modifier.fillMaxSize())
+                    }
+                    entry<WeatherRoute.List> {
+                        WeatherScreen(
+                            viewModel = component.viewModel,
+                            onEffect = onEffect,
+                        )
+                    }
+                },
+            )
         }
     }
 }
+
+private val WeatherRoute.title: String
+    get() = when (this) {
+        WeatherRoute.Map -> "Карта"
+        WeatherRoute.List -> "Список"
+    }
 
 @Composable
 private fun MapPlaceholder(modifier: Modifier = Modifier) {
