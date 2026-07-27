@@ -1,7 +1,5 @@
 package com.sibgear.weather.feature.weather.ui
 
-import com.sibgear.weather.feature.weather.domain.CurrentWeather
-import com.sibgear.weather.feature.weather.domain.CurrentWeatherRepository
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -14,6 +12,9 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import com.sibgear.weather.feature.weather.domain.CurrentWeather
+import com.sibgear.weather.feature.weather.domain.CurrentWeatherRepository
+import com.sibgear.weather.feature.weather.domain.GetCurrentWeatherInteractor
 
 @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 public class WeatherViewModelTest {
@@ -39,7 +40,7 @@ public class WeatherViewModelTest {
     public fun grantedPermissionLoadsWeather(): Unit = runTest {
         Dispatchers.setMain(StandardTestDispatcher(testScheduler))
         try {
-            val viewModel = createViewModel()
+            val viewModel = createViewModel(weatherResult = Result.success(createWeather()))
 
             viewModel.onViewEventOccurred(
                 WeatherEvent.LocationPermissionResult(granted = true, permanentlyDenied = false),
@@ -71,22 +72,60 @@ public class WeatherViewModelTest {
         }
     }
 
-    private fun createViewModel(): WeatherViewModel =
+    @Test
+    public fun failedWeatherLoadingShowsRetryableError(): Unit = runTest {
+        Dispatchers.setMain(StandardTestDispatcher(testScheduler))
+        try {
+            val viewModel = createViewModel(weatherResult = Result.failure(IllegalStateException("network failed")))
+
+            viewModel.onViewEventOccurred(
+                WeatherEvent.LocationPermissionResult(granted = true, permanentlyDenied = false),
+            )
+            advanceUntilIdle()
+
+            val state = assertIs<WeatherState.Error>(viewModel.state.value)
+            assertEquals("Не удалось получить погоду. Повторите попытку.", state.message)
+            assertEquals(false, state.canOpenSettings)
+        } finally {
+            Dispatchers.resetMain()
+        }
+    }
+
+    @Test
+    public fun settingsClickedEmitsOpenAppSettingsEffect(): Unit = runTest {
+        Dispatchers.setMain(StandardTestDispatcher(testScheduler))
+        try {
+            val viewModel = createViewModel()
+            val effect = async(start = CoroutineStart.UNDISPATCHED) { viewModel.effect.first() }
+
+            viewModel.onViewEventOccurred(WeatherEvent.SettingsClicked)
+            advanceUntilIdle()
+
+            assertEquals(WeatherEffect.OpenAppSettings, effect.await())
+        } finally {
+            Dispatchers.resetMain()
+        }
+    }
+
+    private fun createViewModel(
+        weatherResult: Result<CurrentWeather> = Result.success(createWeather()),
+    ): WeatherViewModel =
         WeatherViewModel(
-            getCurrentWeather = com.sibgear.weather.feature.weather.domain.GetCurrentWeatherInteractor(
+            getCurrentWeather = GetCurrentWeatherInteractor(
                 repository = object : CurrentWeatherRepository {
                     override suspend fun loadCurrentWeather(): Result<CurrentWeather> =
-                        Result.success(
-                            CurrentWeather(
-                                cityName = "Новосибирск",
-                                temperatureCelsius = 18.4,
-                                cloudCoverPercent = 62,
-                                windSpeedKilometersPerHour = 12.6,
-                                precipitationMillimeters = 0.4,
-                            ),
-                        )
+                        weatherResult
                 },
             ),
             mapper = WeatherUiMapper(),
+        )
+
+    private fun createWeather(): CurrentWeather =
+        CurrentWeather(
+            cityName = "Новосибирск",
+            temperatureCelsius = 18.4,
+            cloudCoverPercent = 62,
+            windSpeedKilometersPerHour = 12.6,
+            precipitationMillimeters = 0.4,
         )
 }

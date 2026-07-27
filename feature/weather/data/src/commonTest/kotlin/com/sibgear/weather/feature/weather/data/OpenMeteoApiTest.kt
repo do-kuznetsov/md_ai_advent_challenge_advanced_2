@@ -1,15 +1,17 @@
 package com.sibgear.weather.feature.weather.data
 
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
-import io.ktor.serialization.kotlinx.json.json
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
-import kotlin.test.Test
-import kotlin.test.assertEquals
+import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
 
@@ -46,5 +48,26 @@ public class OpenMeteoApiTest {
         val result = OpenMeteoApi(client).getCurrentForecast(55.03, 82.92)
 
         assertEquals(18.4, result.current.temperatureCelsius)
+    }
+
+    @Test
+    public fun failsWhenResponseCannotBeDecoded(): Unit = runTest {
+        val client = HttpClient(
+            MockEngine {
+                respond(
+                    content = """{"reason":"forecast unavailable"}""",
+                    status = HttpStatusCode.InternalServerError,
+                    headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()),
+                )
+            },
+        ) {
+            install(ContentNegotiation) {
+                json(Json { ignoreUnknownKeys = true })
+            }
+        }
+
+        assertFailsWith<Throwable> {
+            OpenMeteoApi(client).getCurrentForecast(55.03, 82.92)
+        }
     }
 }

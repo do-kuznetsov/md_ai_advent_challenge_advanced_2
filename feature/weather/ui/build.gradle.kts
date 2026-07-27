@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.jetbrains.compose)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.multiplatform)
+    alias(libs.plugins.kotlinx.kover)
 }
 
 kotlin {
@@ -12,6 +13,7 @@ kotlin {
         compileSdk = 37
         minSdk = 26
     }
+    jvm()
     iosArm64()
     iosSimulatorArm64()
 
