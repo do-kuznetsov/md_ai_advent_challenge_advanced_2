@@ -20,6 +20,7 @@ import com.sibgear.weather.feature.weather.domain.CityHistoryRepository
 import com.sibgear.weather.feature.weather.domain.CitySearchRepository
 import com.sibgear.weather.feature.weather.domain.CurrentWeather
 import com.sibgear.weather.feature.weather.domain.CurrentWeatherRepository
+import com.sibgear.weather.feature.weather.domain.GetCityHistoryInteractor
 import com.sibgear.weather.feature.weather.domain.GetCurrentWeatherInteractor
 import com.sibgear.weather.feature.weather.domain.SaveCityHistoryInteractor
 import com.sibgear.weather.feature.weather.domain.SearchCitiesInteractor
@@ -41,6 +42,46 @@ public class WeatherViewModelTest {
 
             assertEquals(WeatherEffect.RequestLocationPermission, effect.await())
             assertEquals(WeatherState.LoadingLocation(), viewModel.state.value)
+        } finally {
+            Dispatchers.resetMain()
+        }
+    }
+
+    @Test
+    public fun screenOpenedLoadsCityHistory(): Unit = runTest {
+        Dispatchers.setMain(StandardTestDispatcher(testScheduler))
+        try {
+            val cityHistoryRepository = RecordingCityHistoryRepository(
+                initialRecentEntries = createCityHistoryEntries(),
+            )
+            val viewModel = createViewModel(cityHistoryRepository = cityHistoryRepository)
+            val effect = async(start = CoroutineStart.UNDISPATCHED) { viewModel.effect.first() }
+
+            viewModel.onViewEventOccurred(WeatherEvent.ScreenOpened)
+            advanceUntilIdle()
+
+            assertEquals(WeatherEffect.RequestLocationPermission, effect.await())
+            assertEquals(1, cityHistoryRepository.recentCitiesCount)
+            assertEquals(5, cityHistoryRepository.lastLimit)
+            assertEquals(
+                listOf(
+                    CityHistoryUiModel(
+                        name = "Москва",
+                        country = "Россия",
+                        displayName = "Москва, Россия",
+                        latitude = 55.7558,
+                        longitude = 37.6173,
+                    ),
+                    CityHistoryUiModel(
+                        name = "Томск",
+                        country = null,
+                        displayName = "Томск",
+                        latitude = 56.4846,
+                        longitude = 84.9476,
+                    ),
+                ),
+                viewModel.state.value.cityHistory,
+            )
         } finally {
             Dispatchers.resetMain()
         }
@@ -199,6 +240,65 @@ public class WeatherViewModelTest {
     }
 
     @Test
+    public fun historyCityClickedLoadsWeatherForHistoryCity(): Unit = runTest {
+        Dispatchers.setMain(StandardTestDispatcher(testScheduler))
+        try {
+            val repository = CountingWeatherRepository(
+                weatherResult = Result.success(createWeather(cityName = "Москва")),
+            )
+            val citySearchRepository = CountingCitySearchRepository(Result.success(createCityCandidates()))
+            val cityHistoryRepository = RecordingCityHistoryRepository()
+            val viewModel = createViewModel(
+                repository = repository,
+                citySearchRepository = citySearchRepository,
+                cityHistoryRepository = cityHistoryRepository,
+            )
+
+            viewModel.onViewEventOccurred(
+                WeatherEvent.HistoryCityClicked(
+                    CityHistoryUiModel(
+                        name = "Москва",
+                        country = "Россия",
+                        displayName = "Москва, Россия",
+                        latitude = 55.7558,
+                        longitude = 37.6173,
+                    ),
+                ),
+            )
+            advanceUntilIdle()
+
+            val state = assertIs<WeatherState.Content>(viewModel.state.value)
+            assertEquals("Москва", state.weather.cityName)
+            assertEquals("Москва", state.cityQuery)
+            assertEquals(0, citySearchRepository.searchCount)
+            assertEquals(0, repository.currentLocationLoadCount)
+            assertEquals(1, repository.selectedLocationLoadCount)
+            assertEquals(
+                SelectedWeatherLocation.City(
+                    name = "Москва",
+                    latitude = 55.7558,
+                    longitude = 37.6173,
+                ),
+                repository.lastSelectedLocation,
+            )
+            assertEquals(
+                listOf(
+                    CityHistoryEntry(
+                        name = "Москва",
+                        country = "Россия",
+                        latitude = 55.7558,
+                        longitude = 37.6173,
+                        selectedAtEpochMillis = TEST_SELECTED_AT_EPOCH_MILLIS,
+                    ),
+                ),
+                cityHistoryRepository.savedEntries,
+            )
+        } finally {
+            Dispatchers.resetMain()
+        }
+    }
+
+    @Test
     public fun citySearchSubmittedSavesFirstCityCandidateAfterWeatherSuccess(): Unit = runTest {
         Dispatchers.setMain(StandardTestDispatcher(testScheduler))
         try {
@@ -317,6 +417,9 @@ public class WeatherViewModelTest {
             searchCities = SearchCitiesInteractor(
                 repository = citySearchRepository,
             ),
+            getCityHistory = GetCityHistoryInteractor(
+                repository = cityHistoryRepository,
+            ),
             saveCityHistory = SaveCityHistoryInteractor(
                 repository = cityHistoryRepository,
             ),
@@ -346,6 +449,24 @@ public class WeatherViewModelTest {
                 country = "США",
                 latitude = 46.7324,
                 longitude = -117.0002,
+            ),
+        )
+
+    private fun createCityHistoryEntries(): List<CityHistoryEntry> =
+        listOf(
+            CityHistoryEntry(
+                name = "Москва",
+                country = "Россия",
+                latitude = 55.7558,
+                longitude = 37.6173,
+                selectedAtEpochMillis = 1_723_000_000_000,
+            ),
+            CityHistoryEntry(
+                name = "Томск",
+                country = null,
+                latitude = 56.4846,
+                longitude = 84.9476,
+                selectedAtEpochMillis = 1_722_000_000_000,
             ),
         )
 
@@ -393,17 +514,33 @@ public class WeatherViewModelTest {
 
     private class RecordingCityHistoryRepository(
         private val saveResult: Result<Unit> = Result.success(Unit),
+        initialRecentEntries: List<CityHistoryEntry> = emptyList(),
+        private val recentResult: Result<List<CityHistoryEntry>>? = null,
     ) : CityHistoryRepository {
 
         val savedEntries: MutableList<CityHistoryEntry> = mutableListOf()
 
+        private val recentEntries: MutableList<CityHistoryEntry> = initialRecentEntries.toMutableList()
+
+        var recentCitiesCount: Int = 0
+            private set
+
+        var lastLimit: Int? = null
+            private set
+
         override suspend fun saveCity(entry: CityHistoryEntry): Result<Unit> {
             savedEntries += entry
+            if (saveResult.isSuccess) {
+                recentEntries.add(0, entry)
+            }
             return saveResult
         }
 
-        override suspend fun recentCities(limit: Int): Result<List<CityHistoryEntry>> =
-            Result.success(savedEntries.take(limit))
+        override suspend fun recentCities(limit: Int): Result<List<CityHistoryEntry>> {
+            recentCitiesCount += 1
+            lastLimit = limit
+            return recentResult ?: Result.success(recentEntries.take(limit))
+        }
     }
 
     private companion object {

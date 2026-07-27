@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -62,6 +63,10 @@ public fun WeatherScreen(
                 onCityQueryChanged = { viewModel.onViewEventOccurred(WeatherEvent.CityQueryChanged(it)) },
                 onCitySearchSubmitted = { viewModel.onViewEventOccurred(WeatherEvent.CitySearchSubmitted) },
             )
+            CityHistoryContent(
+                cities = state.cityHistory,
+                onCityClicked = { viewModel.onViewEventOccurred(WeatherEvent.HistoryCityClicked(it)) },
+            )
 
             when (val currentState = state) {
                 is WeatherState.LoadingLocation -> LoadingContent(
@@ -82,6 +87,36 @@ public fun WeatherScreen(
                     onSettingsClicked = { viewModel.onViewEventOccurred(WeatherEvent.SettingsClicked) },
                     modifier = Modifier.weight(1f),
                 )
+            }
+        }
+    }
+}
+
+@Composable
+private fun CityHistoryContent(
+    cities: List<CityHistoryUiModel>,
+    onCityClicked: (CityHistoryUiModel) -> Unit,
+) {
+    if (cities.isEmpty()) {
+        return
+    }
+
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(
+            text = "Недавние города",
+            style = MaterialTheme.typography.subtitle2,
+            fontWeight = FontWeight.Medium,
+        )
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            cities.forEach { city ->
+                Button(onClick = { onCityClicked(city) }) {
+                    Text(text = city.displayName)
+                    Spacer(Modifier.width(8.dp))
+                    Text(text = "Показать")
+                }
             }
         }
     }
