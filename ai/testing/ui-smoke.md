@@ -124,6 +124,16 @@ Current user-visible flow:
 
 Smoke scenarios use real platform permission UI, real location services, real reverse geocoding, and real Open-Meteo network unless the selected device or simulator provides a deterministic location override.
 
+## Open-Meteo Attribution
+
+Forecast data uses Open-Meteo Forecast API. City search uses Open-Meteo Geocoding API.
+
+Both APIs are used without an API key.
+
+Current visible attribution location is the weather content screen: `Данные: Open-Meteo.com`.
+
+City search and geocoding are covered by the same visible provider attribution in the weather flow. If a future UI shows separate city-search results before opening weather content, that search UI must also keep Open-Meteo attribution visible.
+
 ## Smoke Scenarios
 
 Run 3-5 scenarios. Prefer all five when environment supports them.
@@ -181,7 +191,7 @@ Path:
 7. Capture content screen.
 8. Verify city or `Текущее местоположение` label is visible.
 9. Verify weather metrics are visible: temperature, cloud cover, wind, precipitation.
-10. Verify attribution `Данные: Open-Meteo.com` is visible.
+10. Verify Open-Meteo attribution `Данные: Open-Meteo.com` is visible.
 
 Pass when granted permission reaches weather content with attribution.
 
