@@ -19,7 +19,7 @@ This file is documentation only. Do not add, edit, or delete production source o
 
 Status: measured with Kover.
 
-Current measured line coverage: `53.6458%`.
+Current measured line coverage: `63.5417%`.
 
 Measurement command:
 
@@ -32,7 +32,7 @@ Report path: `build/reports/kover/report.xml`.
 Report-level line counter:
 
 ```xml
-<counter type="LINE" missed="89" covered="103"/>
+<counter type="LINE" missed="70" covered="122"/>
 ```
 
 Measured modules:
@@ -252,7 +252,7 @@ For this playbook task:
 - File states this task is documentation only.
 - File does not instruct the agent to write tests during playbook creation.
 - Coverage baseline is `not measured` unless a real report exists.
-- Current coverage is recorded as `53.6458%` only because `build/reports/kover/report.xml` was generated and parsed.
+- Current coverage is recorded as `63.5417%` only because `build/reports/kover/report.xml` was generated and parsed.
 - Target coverage is `60%` for business logic.
 
 For the later implementation task:
