@@ -1,15 +1,19 @@
 package com.sibgear.weather.feature.weather.ui
 
+import com.sibgear.weather.feature.weather.domain.CitySearchRepository
 import com.sibgear.weather.feature.weather.domain.CurrentWeatherRepository
 import com.sibgear.weather.feature.weather.domain.GetCurrentWeatherInteractor
+import com.sibgear.weather.feature.weather.domain.SearchCitiesInteractor
 
 public class WeatherScreenComponent(
-    repository: CurrentWeatherRepository,
+    weatherRepository: CurrentWeatherRepository,
+    citySearchRepository: CitySearchRepository,
 ) {
 
     public val viewModel: WeatherViewModel =
         WeatherViewModel(
-            getCurrentWeather = GetCurrentWeatherInteractor(repository),
+            getCurrentWeather = GetCurrentWeatherInteractor(weatherRepository),
+            searchCities = SearchCitiesInteractor(citySearchRepository),
             mapper = WeatherUiMapper(),
         )
 }

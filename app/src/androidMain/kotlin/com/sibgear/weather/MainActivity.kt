@@ -35,10 +35,11 @@ public class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         component = WeatherScreenComponent(
-            repository = WeatherDataModule.provide(
+            weatherRepository = WeatherDataModule.provide(
                 currentLocationProvider = LocationCoreModule.provide(this),
                 reverseGeocodingRepository = ReverseGeocodingDataModule.provide(this),
             ),
+            citySearchRepository = WeatherDataModule.provideCitySearchRepository(),
         )
         setContent {
             WeatherApp(component = component, onEffect = ::handleEffect)

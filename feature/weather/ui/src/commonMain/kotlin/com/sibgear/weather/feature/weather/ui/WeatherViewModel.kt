@@ -2,12 +2,16 @@ package com.sibgear.weather.feature.weather.ui
 
 import com.sibgear.weather.core.mvvm.BaseViewModel
 import com.sibgear.weather.feature.weather.domain.GetCurrentWeatherInteractor
+import com.sibgear.weather.feature.weather.domain.SearchCitiesInteractor
+import com.sibgear.weather.feature.weather.domain.SelectedWeatherLocation
+import com.sibgear.weather.feature.weather.domain.WeatherCityCandidate
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 public class WeatherViewModel(
     private val getCurrentWeather: GetCurrentWeatherInteractor,
+    private val searchCities: SearchCitiesInteractor,
     private val mapper: WeatherUiMapper,
 ) : BaseViewModel<WeatherState, WeatherEvent, WeatherEffect>() {
 
@@ -37,11 +41,45 @@ public class WeatherViewModel(
         mutableState.value = mutableState.value.withCityQuery(query)
     }
 
-    private fun submitCitySearch() {
-        if (mutableState.value.cityQuery.isBlank()) {
+    private suspend fun submitCitySearch() {
+        val query = mutableState.value.cityQuery
+        if (query.isBlank()) {
             return
         }
+
+        mutableState.value = WeatherState.LoadingWeather(cityQuery = query)
+        val candidate = searchCities(query).getOrElse {
+            mutableState.value = createCitySearchError(query)
+            return
+        }.firstOrNull()
+
+        if (candidate == null) {
+            mutableState.value = createCitySearchError(query)
+            return
+        }
+
+        loadCityWeather(query = query, candidate = candidate)
     }
+
+    private suspend fun loadCityWeather(query: String, candidate: WeatherCityCandidate) {
+        val location = SelectedWeatherLocation.City(
+            name = candidate.name,
+            latitude = candidate.latitude,
+            longitude = candidate.longitude,
+        )
+
+        mutableState.value = getCurrentWeather(location).fold(
+            onSuccess = { WeatherState.Content(weather = mapper.map(it), cityQuery = query) },
+            onFailure = { createCitySearchError(query) },
+        )
+    }
+
+    private fun createCitySearchError(query: String): WeatherState.Error =
+        WeatherState.Error(
+            message = "Не удалось найти город. Повторите попытку.",
+            canOpenSettings = false,
+            cityQuery = query,
+        )
 
     private suspend fun handlePermissionResult(event: WeatherEvent.LocationPermissionResult) {
         val cityQuery = mutableState.value.cityQuery

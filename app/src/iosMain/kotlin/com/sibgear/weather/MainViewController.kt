@@ -23,10 +23,11 @@ import platform.UIKit.UIViewController
 @OptIn(ExperimentalForeignApi::class)
 public fun MainViewController(): UIViewController {
     val component = WeatherScreenComponent(
-        repository = WeatherDataModule.provide(
+        weatherRepository = WeatherDataModule.provide(
             currentLocationProvider = LocationCoreModule.provide(),
             reverseGeocodingRepository = ReverseGeocodingDataModule.provide(),
         ),
+        citySearchRepository = WeatherDataModule.provideCitySearchRepository(),
     )
     val permissionHandler = IosWeatherPermissionHandler(component)
 
