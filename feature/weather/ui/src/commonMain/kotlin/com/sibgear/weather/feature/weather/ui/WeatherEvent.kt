@@ -22,6 +22,10 @@ public sealed interface WeatherEvent {
 
     public data object FavoriteClicked : WeatherEvent
 
+    public data class MapLocationSelected(
+        public val point: WeatherMapPoint,
+    ) : WeatherEvent
+
     public data class LocationPermissionResult(
         public val granted: Boolean,
         public val permanentlyDenied: Boolean,

@@ -44,6 +44,7 @@ public class WeatherViewModel(
             is WeatherEvent.HistoryCityClicked -> loadHistoryCityWeather(event.city)
             is WeatherEvent.FavoriteCityClicked -> loadFavoriteCityWeather(event.city)
             WeatherEvent.FavoriteClicked -> toggleFavoriteCity()
+            is WeatherEvent.MapLocationSelected -> loadMapLocationWeather(event.point)
             is WeatherEvent.LocationPermissionResult -> handlePermissionResult(event)
             WeatherEvent.SettingsClicked -> emitEffect(WeatherEffect.OpenAppSettings)
         }
@@ -186,6 +187,33 @@ public class WeatherViewModel(
             favoriteCities = mutableState.value.favoriteCities,
         )
         saveCityToHistory(candidate.toHistoryEntry())
+    }
+
+    private suspend fun loadMapLocationWeather(point: WeatherMapPoint) {
+        val query = point.displayQuery()
+        mutableState.value = WeatherState.LoadingWeather(
+            cityQuery = query,
+            cityHistory = mutableState.value.cityHistory,
+            favoriteCities = mutableState.value.favoriteCities,
+        )
+
+        val weather = getCurrentWeather(
+            SelectedWeatherLocation.Coordinates(
+                latitude = point.latitude,
+                longitude = point.longitude,
+            ),
+        ).getOrElse {
+            mutableState.value = createWeatherLoadingError(query)
+            return
+        }
+
+        currentFavoriteCandidate = null
+        mutableState.value = WeatherState.Content(
+            weather = mapper.map(weather),
+            cityQuery = query,
+            cityHistory = mutableState.value.cityHistory,
+            favoriteCities = mutableState.value.favoriteCities,
+        )
     }
 
     private suspend fun toggleFavoriteCity() {
@@ -359,6 +387,14 @@ public class WeatherViewModel(
             longitude = longitude,
         )
 
+    private fun WeatherMapPoint.displayQuery(): String =
+        "${latitude.formatCoordinate()}, ${longitude.formatCoordinate()}"
+
+    private fun Double.formatCoordinate(): String =
+        (this * COORDINATE_SCALE).toLong().toDouble()
+            .let { it / COORDINATE_SCALE }
+            .toString()
+
     private fun List<FavoriteCityUiModel>.containsLocation(entry: FavoriteCityEntry): Boolean =
         any { favorite ->
             favorite.latitude == entry.latitude && favorite.longitude == entry.longitude
@@ -367,5 +403,6 @@ public class WeatherViewModel(
     private companion object {
 
         private const val RECENT_CITIES_LIMIT: Int = 5
+        private const val COORDINATE_SCALE: Double = 10_000.0
     }
 }

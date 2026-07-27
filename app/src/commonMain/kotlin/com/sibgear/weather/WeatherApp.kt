@@ -14,6 +14,7 @@ import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.ui.NavDisplay
 import androidx.savedstate.serialization.SavedStateConfiguration
 import com.sibgear.weather.feature.weather.ui.WeatherEffect
+import com.sibgear.weather.feature.weather.ui.WeatherEvent
 import com.sibgear.weather.feature.weather.ui.WeatherMapScreen
 import com.sibgear.weather.feature.weather.ui.WeatherRoute
 import com.sibgear.weather.feature.weather.ui.WeatherScreen
@@ -61,7 +62,14 @@ public fun WeatherApp(
                 modifier = Modifier.weight(1f),
                 entryProvider = entryProvider {
                     entry<WeatherRoute.Map> {
-                        WeatherMapScreen(modifier = Modifier.fillMaxSize())
+                        WeatherMapScreen(
+                            onPointSelected = { point ->
+                                component.viewModel.onViewEventOccurred(WeatherEvent.MapLocationSelected(point))
+                                backStack.clear()
+                                backStack.add(WeatherRoute.List)
+                            },
+                            modifier = Modifier.fillMaxSize(),
+                        )
                     }
                     entry<WeatherRoute.List> {
                         WeatherScreen(

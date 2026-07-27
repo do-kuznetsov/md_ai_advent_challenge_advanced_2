@@ -4,6 +4,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 
 @Composable
-public actual fun WeatherMapScreen(modifier: Modifier) {
-    WeatherFallbackMap(modifier = modifier)
+public actual fun WeatherMapScreen(
+    onPointSelected: (WeatherMapPoint) -> Unit,
+    modifier: Modifier,
+) {
+    WeatherFallbackMap(
+        onPointSelected = onPointSelected,
+        modifier = modifier,
+    )
 }

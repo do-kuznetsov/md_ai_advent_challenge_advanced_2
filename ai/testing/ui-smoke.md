@@ -244,13 +244,17 @@ Path:
 6. Capture the panned map.
 7. Pinch or use platform zoom gesture when available.
 8. Capture the zoomed map.
-9. Tap `Список`.
-10. Capture the list tab.
-11. Verify the weather screen surface is visible again: `Город`, `Найти`, and the current weather/loading/error content.
+9. Tap a visible map point.
+10. Capture the automatic return to the `Список` tab.
+11. Verify `Получаем погоду` is visible if loading is still in progress.
+12. Wait for weather content.
+13. Capture content screen.
+14. Verify weather loads for the tapped coordinates and either a reverse-geocoded city name or `Текущее местоположение` is visible.
+15. Verify weather metrics and `Данные: Open-Meteo.com` are visible.
 
-Pass when tab switching works and the map surface responds to pan or zoom.
+Pass when tab switching works, the map surface responds to pan or zoom, and tapping a map point opens weather content for those coordinates.
 
-Future map-selection tasks must update this scenario when tapping a map point loads weather.
+If the selected platform cannot provide deterministic tap coordinates through its map implementation, mark only the coordinate-selection portion `blocked`.
 
 ## Execution Rules
 

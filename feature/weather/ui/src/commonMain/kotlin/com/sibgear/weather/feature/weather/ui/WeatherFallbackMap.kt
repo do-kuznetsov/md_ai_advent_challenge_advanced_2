@@ -2,6 +2,7 @@ package com.sibgear.weather.feature.weather.ui
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
@@ -17,10 +18,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 
 @Composable
-internal fun WeatherFallbackMap(modifier: Modifier = Modifier) {
+internal fun WeatherFallbackMap(
+    onPointSelected: (WeatherMapPoint) -> Unit,
+    modifier: Modifier = Modifier,
+) {
     var scale by remember { mutableFloatStateOf(1f) }
     var offset by remember { mutableStateOf(Offset.Zero) }
 
@@ -28,6 +33,11 @@ internal fun WeatherFallbackMap(modifier: Modifier = Modifier) {
         modifier = modifier
             .fillMaxSize()
             .background(Color(0xFFDCEFF7))
+            .pointerInput(Unit) {
+                detectTapGestures { tapOffset ->
+                    onPointSelected(tapOffset.toMapPoint(size))
+                }
+            }
             .pointerInput(Unit) {
                 detectTransformGestures { _, pan, zoom, _ ->
                     offset += pan
@@ -46,6 +56,15 @@ internal fun WeatherFallbackMap(modifier: Modifier = Modifier) {
             drawLandMasses()
         }
     }
+}
+
+private fun Offset.toMapPoint(size: IntSize): WeatherMapPoint {
+    val latitude = (90.0 - (y / size.height.coerceAtLeast(1)) * 180.0)
+        .coerceIn(MIN_LATITUDE, MAX_LATITUDE)
+    val longitude = ((x / size.width.coerceAtLeast(1)) * 360.0 - 180.0)
+        .coerceIn(MIN_LONGITUDE, MAX_LONGITUDE)
+
+    return WeatherMapPoint(latitude = latitude, longitude = longitude)
 }
 
 private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawMapGrid() {
@@ -108,3 +127,7 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawLandMasses() {
 private const val GRID_LINES: Int = 6
 private const val MIN_MAP_SCALE: Float = 0.8f
 private const val MAX_MAP_SCALE: Float = 4f
+private const val MIN_LATITUDE: Double = -90.0
+private const val MAX_LATITUDE: Double = 90.0
+private const val MIN_LONGITUDE: Double = -180.0
+private const val MAX_LONGITUDE: Double = 180.0

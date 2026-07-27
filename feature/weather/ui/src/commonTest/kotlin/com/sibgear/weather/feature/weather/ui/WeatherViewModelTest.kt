@@ -602,6 +602,44 @@ public class WeatherViewModelTest {
     }
 
     @Test
+    public fun mapLocationSelectedLoadsWeatherForCoordinates(): Unit = runTest {
+        Dispatchers.setMain(StandardTestDispatcher(testScheduler))
+        try {
+            val repository = CountingWeatherRepository(
+                weatherResult = Result.success(createWeather(cityName = "Томск")),
+            )
+            val viewModel = createViewModel(repository = repository)
+
+            viewModel.onViewEventOccurred(
+                WeatherEvent.MapLocationSelected(
+                    WeatherMapPoint(
+                        latitude = 56.4846,
+                        longitude = 84.9476,
+                    ),
+                ),
+            )
+            advanceUntilIdle()
+
+            val state = assertIs<WeatherState.Content>(viewModel.state.value)
+            assertEquals("Томск", state.weather.cityName)
+            assertEquals("56.4846, 84.9476", state.cityQuery)
+            assertEquals(false, state.canToggleFavorite)
+            assertEquals(false, state.isFavorite)
+            assertEquals(0, repository.currentLocationLoadCount)
+            assertEquals(1, repository.selectedLocationLoadCount)
+            assertEquals(
+                SelectedWeatherLocation.Coordinates(
+                    latitude = 56.4846,
+                    longitude = 84.9476,
+                ),
+                repository.lastSelectedLocation,
+            )
+        } finally {
+            Dispatchers.resetMain()
+        }
+    }
+
+    @Test
     public fun citySearchSubmittedSavesFirstCityCandidateAfterWeatherSuccess(): Unit = runTest {
         Dispatchers.setMain(StandardTestDispatcher(testScheduler))
         try {
