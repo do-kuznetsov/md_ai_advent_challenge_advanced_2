@@ -2,8 +2,12 @@ package com.sibgear.weather.feature.weather.ui
 
 import com.sibgear.weather.core.mvvm.BaseViewModel
 import com.sibgear.weather.feature.weather.domain.CityHistoryEntry
+import com.sibgear.weather.feature.weather.domain.AddFavoriteCityInteractor
+import com.sibgear.weather.feature.weather.domain.FavoriteCityEntry
 import com.sibgear.weather.feature.weather.domain.GetCityHistoryInteractor
 import com.sibgear.weather.feature.weather.domain.GetCurrentWeatherInteractor
+import com.sibgear.weather.feature.weather.domain.GetFavoriteCitiesInteractor
+import com.sibgear.weather.feature.weather.domain.RemoveFavoriteCityInteractor
 import com.sibgear.weather.feature.weather.domain.SaveCityHistoryInteractor
 import com.sibgear.weather.feature.weather.domain.SearchCitiesInteractor
 import com.sibgear.weather.feature.weather.domain.SelectedWeatherLocation
@@ -17,11 +21,16 @@ public class WeatherViewModel(
     private val searchCities: SearchCitiesInteractor,
     private val getCityHistory: GetCityHistoryInteractor,
     private val saveCityHistory: SaveCityHistoryInteractor,
+    private val getFavoriteCities: GetFavoriteCitiesInteractor,
+    private val addFavoriteCity: AddFavoriteCityInteractor,
+    private val removeFavoriteCity: RemoveFavoriteCityInteractor,
     private val currentTimeMillis: () -> Long,
     private val mapper: WeatherUiMapper,
 ) : BaseViewModel<WeatherState, WeatherEvent, WeatherEffect>() {
 
     private val mutableState: MutableStateFlow<WeatherState> = MutableStateFlow(WeatherState.LoadingLocation())
+
+    private var currentFavoriteCandidate: FavoriteCityEntry? = null
 
     public val state: StateFlow<WeatherState> = mutableState.asStateFlow()
 
@@ -33,6 +42,8 @@ public class WeatherViewModel(
             is WeatherEvent.CityQueryChanged -> updateCityQuery(event.query)
             WeatherEvent.CitySearchSubmitted -> submitCitySearch()
             is WeatherEvent.HistoryCityClicked -> loadHistoryCityWeather(event.city)
+            is WeatherEvent.FavoriteCityClicked -> loadFavoriteCityWeather(event.city)
+            WeatherEvent.FavoriteClicked -> toggleFavoriteCity()
             is WeatherEvent.LocationPermissionResult -> handlePermissionResult(event)
             WeatherEvent.SettingsClicked -> emitEffect(WeatherEffect.OpenAppSettings)
         }
@@ -41,6 +52,7 @@ public class WeatherViewModel(
     private suspend fun handleScreenOpened() {
         requestPermission()
         loadRecentCities()
+        loadFavoriteCities()
     }
 
     private suspend fun loadRecentCities() {
@@ -52,9 +64,11 @@ public class WeatherViewModel(
     }
 
     private suspend fun requestPermission() {
+        currentFavoriteCandidate = null
         mutableState.value = WeatherState.LoadingLocation(
             cityQuery = mutableState.value.cityQuery,
             cityHistory = mutableState.value.cityHistory,
+            favoriteCities = mutableState.value.favoriteCities,
         )
         emitEffect(WeatherEffect.RequestLocationPermission)
     }
@@ -72,6 +86,7 @@ public class WeatherViewModel(
         mutableState.value = WeatherState.LoadingWeather(
             cityQuery = query,
             cityHistory = mutableState.value.cityHistory,
+            favoriteCities = mutableState.value.favoriteCities,
         )
         val candidate = searchCities(query).getOrElse {
             mutableState.value = createCitySearchError(query)
@@ -90,7 +105,9 @@ public class WeatherViewModel(
         mutableState.value = WeatherState.LoadingWeather(
             cityQuery = city.name,
             cityHistory = mutableState.value.cityHistory,
+            favoriteCities = mutableState.value.favoriteCities,
         )
+        val favoriteCity = city.toFavoriteEntry()
 
         val weather = getCurrentWeather(
             SelectedWeatherLocation.City(
@@ -103,10 +120,45 @@ public class WeatherViewModel(
             return
         }
 
+        currentFavoriteCandidate = favoriteCity
         mutableState.value = WeatherState.Content(
             weather = mapper.map(weather),
+            canToggleFavorite = true,
+            isFavorite = mutableState.value.favoriteCities.containsLocation(favoriteCity),
             cityQuery = city.name,
             cityHistory = mutableState.value.cityHistory,
+            favoriteCities = mutableState.value.favoriteCities,
+        )
+        saveCityToHistory(city.toHistoryEntry())
+    }
+
+    private suspend fun loadFavoriteCityWeather(city: FavoriteCityUiModel) {
+        mutableState.value = WeatherState.LoadingWeather(
+            cityQuery = city.name,
+            cityHistory = mutableState.value.cityHistory,
+            favoriteCities = mutableState.value.favoriteCities,
+        )
+        val favoriteCity = city.toFavoriteEntry()
+
+        val weather = getCurrentWeather(
+            SelectedWeatherLocation.City(
+                name = city.name,
+                latitude = city.latitude,
+                longitude = city.longitude,
+            ),
+        ).getOrElse {
+            mutableState.value = createWeatherLoadingError(city.name)
+            return
+        }
+
+        currentFavoriteCandidate = favoriteCity
+        mutableState.value = WeatherState.Content(
+            weather = mapper.map(weather),
+            canToggleFavorite = true,
+            isFavorite = true,
+            cityQuery = city.name,
+            cityHistory = mutableState.value.cityHistory,
+            favoriteCities = mutableState.value.favoriteCities,
         )
         saveCityToHistory(city.toHistoryEntry())
     }
@@ -123,12 +175,33 @@ public class WeatherViewModel(
             return
         }
 
+        val favoriteCity = candidate.toFavoriteEntry()
+        currentFavoriteCandidate = favoriteCity
         mutableState.value = WeatherState.Content(
             weather = mapper.map(weather),
+            canToggleFavorite = true,
+            isFavorite = mutableState.value.favoriteCities.containsLocation(favoriteCity),
             cityQuery = query,
             cityHistory = mutableState.value.cityHistory,
+            favoriteCities = mutableState.value.favoriteCities,
         )
         saveCityToHistory(candidate.toHistoryEntry())
+    }
+
+    private suspend fun toggleFavoriteCity() {
+        val content = mutableState.value as? WeatherState.Content ?: return
+        val favoriteCity = currentFavoriteCandidate ?: return
+
+        if (content.isFavorite) {
+            removeFavoriteCity(favoriteCity)
+        } else {
+            addFavoriteCity(favoriteCity)
+        }
+        loadFavoriteCities()
+        val updatedContent = mutableState.value as? WeatherState.Content ?: return
+        mutableState.value = updatedContent.copy(
+            isFavorite = updatedContent.favoriteCities.containsLocation(favoriteCity),
+        )
     }
 
     private suspend fun saveCityToHistory(entry: CityHistoryEntry) {
@@ -138,12 +211,21 @@ public class WeatherViewModel(
         loadRecentCities()
     }
 
+    private suspend fun loadFavoriteCities() {
+        val favoriteCities = getFavoriteCities()
+            .getOrElse { emptyList() }
+            .map(mapper::map)
+
+        mutableState.value = mutableState.value.withFavoriteCities(favoriteCities)
+    }
+
     private fun createCitySearchError(query: String): WeatherState.Error =
         WeatherState.Error(
             message = "Не удалось найти город. Повторите попытку.",
             canOpenSettings = false,
             cityQuery = query,
             cityHistory = mutableState.value.cityHistory,
+            favoriteCities = mutableState.value.favoriteCities,
         )
 
     private fun createWeatherLoadingError(query: String): WeatherState.Error =
@@ -152,29 +234,39 @@ public class WeatherViewModel(
             canOpenSettings = false,
             cityQuery = query,
             cityHistory = mutableState.value.cityHistory,
+            favoriteCities = mutableState.value.favoriteCities,
         )
 
     private suspend fun handlePermissionResult(event: WeatherEvent.LocationPermissionResult) {
         val cityQuery = mutableState.value.cityQuery
         val cityHistory = mutableState.value.cityHistory
+        val favoriteCities = mutableState.value.favoriteCities
 
         if (!event.granted) {
+            currentFavoriteCandidate = null
             mutableState.value = WeatherState.Error(
                 message = "Для прогноза нужен доступ к геолокации.",
                 canOpenSettings = event.permanentlyDenied,
                 cityQuery = cityQuery,
                 cityHistory = cityHistory,
+                favoriteCities = favoriteCities,
             )
             return
         }
 
-        mutableState.value = WeatherState.LoadingWeather(cityQuery = cityQuery, cityHistory = cityHistory)
+        currentFavoriteCandidate = null
+        mutableState.value = WeatherState.LoadingWeather(
+            cityQuery = cityQuery,
+            cityHistory = cityHistory,
+            favoriteCities = favoriteCities,
+        )
         mutableState.value = getCurrentWeather().fold(
             onSuccess = {
                 WeatherState.Content(
                     weather = mapper.map(it),
                     cityQuery = cityQuery,
                     cityHistory = cityHistory,
+                    favoriteCities = favoriteCities,
                 )
             },
             onFailure = {
@@ -183,6 +275,7 @@ public class WeatherViewModel(
                     canOpenSettings = false,
                     cityQuery = cityQuery,
                     cityHistory = cityHistory,
+                    favoriteCities = favoriteCities,
                 )
             },
         )
@@ -204,6 +297,17 @@ public class WeatherViewModel(
             is WeatherState.Error -> copy(cityHistory = cityHistory)
         }
 
+    private fun WeatherState.withFavoriteCities(favoriteCities: List<FavoriteCityUiModel>): WeatherState =
+        when (this) {
+            is WeatherState.LoadingLocation -> copy(favoriteCities = favoriteCities)
+            is WeatherState.LoadingWeather -> copy(favoriteCities = favoriteCities)
+            is WeatherState.Content -> copy(
+                favoriteCities = favoriteCities,
+                isFavorite = currentFavoriteCandidate?.let { favoriteCities.containsLocation(it) } ?: isFavorite,
+            )
+            is WeatherState.Error -> copy(favoriteCities = favoriteCities)
+        }
+
     private fun WeatherCityCandidate.toHistoryEntry(): CityHistoryEntry =
         CityHistoryEntry(
             name = name,
@@ -211,6 +315,14 @@ public class WeatherViewModel(
             latitude = latitude,
             longitude = longitude,
             selectedAtEpochMillis = currentTimeMillis(),
+        )
+
+    private fun WeatherCityCandidate.toFavoriteEntry(): FavoriteCityEntry =
+        FavoriteCityEntry(
+            name = name,
+            country = country,
+            latitude = latitude,
+            longitude = longitude,
         )
 
     private fun CityHistoryUiModel.toHistoryEntry(): CityHistoryEntry =
@@ -221,6 +333,36 @@ public class WeatherViewModel(
             longitude = longitude,
             selectedAtEpochMillis = currentTimeMillis(),
         )
+
+    private fun CityHistoryUiModel.toFavoriteEntry(): FavoriteCityEntry =
+        FavoriteCityEntry(
+            name = name,
+            country = country,
+            latitude = latitude,
+            longitude = longitude,
+        )
+
+    private fun FavoriteCityUiModel.toHistoryEntry(): CityHistoryEntry =
+        CityHistoryEntry(
+            name = name,
+            country = country,
+            latitude = latitude,
+            longitude = longitude,
+            selectedAtEpochMillis = currentTimeMillis(),
+        )
+
+    private fun FavoriteCityUiModel.toFavoriteEntry(): FavoriteCityEntry =
+        FavoriteCityEntry(
+            name = name,
+            country = country,
+            latitude = latitude,
+            longitude = longitude,
+        )
+
+    private fun List<FavoriteCityUiModel>.containsLocation(entry: FavoriteCityEntry): Boolean =
+        any { favorite ->
+            favorite.latitude == entry.latitude && favorite.longitude == entry.longitude
+        }
 
     private companion object {
 

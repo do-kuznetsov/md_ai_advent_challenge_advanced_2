@@ -5,6 +5,7 @@ import com.sibgear.weather.core.location.LocationCoreModule
 import com.sibgear.weather.feature.reversegeocoding.data.ReverseGeocodingDataModule
 import com.sibgear.weather.feature.weather.data.WeatherDataModule
 import com.sibgear.weather.feature.weather.data.provideIosCityHistoryRepository
+import com.sibgear.weather.feature.weather.data.provideIosFavoriteCityRepository
 import com.sibgear.weather.feature.weather.ui.WeatherEffect
 import com.sibgear.weather.feature.weather.ui.WeatherEvent
 import com.sibgear.weather.feature.weather.ui.WeatherScreenComponent
@@ -31,6 +32,7 @@ public fun MainViewController(): UIViewController {
         ),
         citySearchRepository = WeatherDataModule.provideCitySearchRepository(),
         cityHistoryRepository = WeatherDataModule.provideIosCityHistoryRepository(),
+        favoriteCityRepository = WeatherDataModule.provideIosFavoriteCityRepository(),
         currentTimeMillis = { time(null) * MILLIS_PER_SECOND },
     )
     val permissionHandler = IosWeatherPermissionHandler(component)

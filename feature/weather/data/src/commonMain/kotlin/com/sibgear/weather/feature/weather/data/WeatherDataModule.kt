@@ -8,6 +8,7 @@ import com.sibgear.weather.feature.weather.data.storage.WeatherStorageDatabase
 import com.sibgear.weather.feature.weather.domain.CityHistoryRepository
 import com.sibgear.weather.feature.weather.domain.CitySearchRepository
 import com.sibgear.weather.feature.weather.domain.CurrentWeatherRepository
+import com.sibgear.weather.feature.weather.domain.FavoriteCityRepository
 
 public object WeatherDataModule {
 
@@ -32,5 +33,11 @@ public object WeatherDataModule {
         CityHistoryRepositoryImpl(
             database = WeatherStorageDatabase(driver),
             mapper = CityHistoryEntryMapper(),
+        )
+
+    public fun provideFavoriteCityRepository(driver: SqlDriver): FavoriteCityRepository =
+        FavoriteCityRepositoryImpl(
+            database = WeatherStorageDatabase(driver),
+            mapper = FavoriteCityEntryMapper(),
         )
 }

@@ -16,6 +16,7 @@ import androidx.compose.material.Button
 import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.material.Divider
 import androidx.compose.material.Icon
+import androidx.compose.material.IconButton
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Surface
 import androidx.compose.material.Text
@@ -23,6 +24,8 @@ import androidx.compose.material.TextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Air
 import androidx.compose.material.icons.filled.Cloud
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Opacity
 import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.runtime.Composable
@@ -63,6 +66,10 @@ public fun WeatherScreen(
                 onCityQueryChanged = { viewModel.onViewEventOccurred(WeatherEvent.CityQueryChanged(it)) },
                 onCitySearchSubmitted = { viewModel.onViewEventOccurred(WeatherEvent.CitySearchSubmitted) },
             )
+            FavoriteCitiesContent(
+                cities = state.favoriteCities,
+                onCityClicked = { viewModel.onViewEventOccurred(WeatherEvent.FavoriteCityClicked(it)) },
+            )
             CityHistoryContent(
                 cities = state.cityHistory,
                 onCityClicked = { viewModel.onViewEventOccurred(WeatherEvent.HistoryCityClicked(it)) },
@@ -79,6 +86,9 @@ public fun WeatherScreen(
                 )
                 is WeatherState.Content -> WeatherContent(
                     weather = currentState.weather,
+                    canToggleFavorite = currentState.canToggleFavorite,
+                    isFavorite = currentState.isFavorite,
+                    onFavoriteClicked = { viewModel.onViewEventOccurred(WeatherEvent.FavoriteClicked) },
                     modifier = Modifier.weight(1f),
                 )
                 is WeatherState.Error -> ErrorContent(
@@ -87,6 +97,40 @@ public fun WeatherScreen(
                     onSettingsClicked = { viewModel.onViewEventOccurred(WeatherEvent.SettingsClicked) },
                     modifier = Modifier.weight(1f),
                 )
+            }
+        }
+    }
+}
+
+@Composable
+private fun FavoriteCitiesContent(
+    cities: List<FavoriteCityUiModel>,
+    onCityClicked: (FavoriteCityUiModel) -> Unit,
+) {
+    if (cities.isEmpty()) {
+        return
+    }
+
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(
+            text = "Избранное",
+            style = MaterialTheme.typography.subtitle2,
+            fontWeight = FontWeight.Medium,
+        )
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            cities.forEach { city ->
+                Button(onClick = { onCityClicked(city) }) {
+                    Icon(
+                        imageVector = Icons.Filled.Favorite,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(text = city.displayName)
+                }
             }
         }
     }
@@ -165,12 +209,36 @@ private fun LoadingContent(message: String, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun WeatherContent(weather: WeatherUiModel, modifier: Modifier = Modifier) {
+private fun WeatherContent(
+    weather: WeatherUiModel,
+    canToggleFavorite: Boolean,
+    isFavorite: Boolean,
+    onFavoriteClicked: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     Column(
         modifier = modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Text(text = weather.cityName, style = MaterialTheme.typography.h5)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(text = weather.cityName, style = MaterialTheme.typography.h5)
+            if (canToggleFavorite) {
+                IconButton(onClick = onFavoriteClicked) {
+                    Icon(
+                        imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
+                        contentDescription = if (isFavorite) {
+                            "Убрать из избранного"
+                        } else {
+                            "Добавить в избранное"
+                        },
+                    )
+                }
+            }
+        }
         Row(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically,

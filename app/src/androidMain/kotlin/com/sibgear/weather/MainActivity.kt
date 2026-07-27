@@ -13,6 +13,7 @@ import androidx.core.content.ContextCompat
 import com.sibgear.weather.core.location.LocationCoreModule
 import com.sibgear.weather.feature.reversegeocoding.data.ReverseGeocodingDataModule
 import com.sibgear.weather.feature.weather.data.WeatherDataModule
+import com.sibgear.weather.feature.weather.data.provideAndroidFavoriteCityRepository
 import com.sibgear.weather.feature.weather.data.provideAndroidCityHistoryRepository
 import com.sibgear.weather.feature.weather.ui.WeatherEffect
 import com.sibgear.weather.feature.weather.ui.WeatherEvent
@@ -42,6 +43,7 @@ public class MainActivity : ComponentActivity() {
             ),
             citySearchRepository = WeatherDataModule.provideCitySearchRepository(),
             cityHistoryRepository = WeatherDataModule.provideAndroidCityHistoryRepository(this),
+            favoriteCityRepository = WeatherDataModule.provideAndroidFavoriteCityRepository(this),
             currentTimeMillis = { System.currentTimeMillis() },
         )
         setContent {

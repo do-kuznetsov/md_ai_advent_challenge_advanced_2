@@ -8,6 +8,8 @@ import com.sibgear.weather.feature.weather.domain.CityHistoryRepository
 import com.sibgear.weather.feature.weather.domain.CitySearchRepository
 import com.sibgear.weather.feature.weather.domain.CurrentWeather
 import com.sibgear.weather.feature.weather.domain.CurrentWeatherRepository
+import com.sibgear.weather.feature.weather.domain.FavoriteCityEntry
+import com.sibgear.weather.feature.weather.domain.FavoriteCityRepository
 import com.sibgear.weather.feature.weather.domain.WeatherCityCandidate
 
 public class WeatherScreenComponentTest {
@@ -36,6 +38,16 @@ public class WeatherScreenComponentTest {
                     Result.success(Unit)
 
                 override suspend fun recentCities(limit: Int): Result<List<CityHistoryEntry>> =
+                    Result.success(emptyList())
+            },
+            favoriteCityRepository = object : FavoriteCityRepository {
+                override suspend fun addCity(entry: FavoriteCityEntry): Result<Unit> =
+                    Result.success(Unit)
+
+                override suspend fun removeCity(entry: FavoriteCityEntry): Result<Unit> =
+                    Result.success(Unit)
+
+                override suspend fun favoriteCities(): Result<List<FavoriteCityEntry>> =
                     Result.success(emptyList())
             },
             currentTimeMillis = { 1_723_000_000_000 },

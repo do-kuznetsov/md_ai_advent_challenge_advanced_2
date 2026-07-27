@@ -4,21 +4,27 @@ public sealed interface WeatherState {
 
     public val cityQuery: String
     public val cityHistory: List<CityHistoryUiModel>
+    public val favoriteCities: List<FavoriteCityUiModel>
 
     public data class LoadingLocation(
         public override val cityQuery: String = "",
         public override val cityHistory: List<CityHistoryUiModel> = emptyList(),
+        public override val favoriteCities: List<FavoriteCityUiModel> = emptyList(),
     ) : WeatherState
 
     public data class LoadingWeather(
         public override val cityQuery: String = "",
         public override val cityHistory: List<CityHistoryUiModel> = emptyList(),
+        public override val favoriteCities: List<FavoriteCityUiModel> = emptyList(),
     ) : WeatherState
 
     public data class Content(
         public val weather: WeatherUiModel,
+        public val canToggleFavorite: Boolean = false,
+        public val isFavorite: Boolean = false,
         public override val cityQuery: String = "",
         public override val cityHistory: List<CityHistoryUiModel> = emptyList(),
+        public override val favoriteCities: List<FavoriteCityUiModel> = emptyList(),
     ) : WeatherState
 
     public data class Error(
@@ -26,6 +32,7 @@ public sealed interface WeatherState {
         public val canOpenSettings: Boolean,
         public override val cityQuery: String = "",
         public override val cityHistory: List<CityHistoryUiModel> = emptyList(),
+        public override val favoriteCities: List<FavoriteCityUiModel> = emptyList(),
     ) : WeatherState
 }
 

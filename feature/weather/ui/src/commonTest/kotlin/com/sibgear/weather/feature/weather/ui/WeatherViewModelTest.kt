@@ -15,13 +15,18 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import com.sibgear.weather.feature.weather.domain.AddFavoriteCityInteractor
 import com.sibgear.weather.feature.weather.domain.CityHistoryEntry
 import com.sibgear.weather.feature.weather.domain.CityHistoryRepository
 import com.sibgear.weather.feature.weather.domain.CitySearchRepository
 import com.sibgear.weather.feature.weather.domain.CurrentWeather
 import com.sibgear.weather.feature.weather.domain.CurrentWeatherRepository
+import com.sibgear.weather.feature.weather.domain.FavoriteCityEntry
+import com.sibgear.weather.feature.weather.domain.FavoriteCityRepository
 import com.sibgear.weather.feature.weather.domain.GetCityHistoryInteractor
 import com.sibgear.weather.feature.weather.domain.GetCurrentWeatherInteractor
+import com.sibgear.weather.feature.weather.domain.GetFavoriteCitiesInteractor
+import com.sibgear.weather.feature.weather.domain.RemoveFavoriteCityInteractor
 import com.sibgear.weather.feature.weather.domain.SaveCityHistoryInteractor
 import com.sibgear.weather.feature.weather.domain.SearchCitiesInteractor
 import com.sibgear.weather.feature.weather.domain.SelectedWeatherLocation
@@ -81,6 +86,38 @@ public class WeatherViewModelTest {
                     ),
                 ),
                 viewModel.state.value.cityHistory,
+            )
+        } finally {
+            Dispatchers.resetMain()
+        }
+    }
+
+    @Test
+    public fun screenOpenedLoadsFavoriteCities(): Unit = runTest {
+        Dispatchers.setMain(StandardTestDispatcher(testScheduler))
+        try {
+            val favoriteCityRepository = RecordingFavoriteCityRepository(
+                initialEntries = listOf(createFavoriteEntry()),
+            )
+            val viewModel = createViewModel(favoriteCityRepository = favoriteCityRepository)
+            val effect = async(start = CoroutineStart.UNDISPATCHED) { viewModel.effect.first() }
+
+            viewModel.onViewEventOccurred(WeatherEvent.ScreenOpened)
+            advanceUntilIdle()
+
+            assertEquals(WeatherEffect.RequestLocationPermission, effect.await())
+            assertEquals(1, favoriteCityRepository.favoriteCitiesCount)
+            assertEquals(
+                listOf(
+                    FavoriteCityUiModel(
+                        name = "Москва",
+                        country = "Россия",
+                        displayName = "Москва, Россия",
+                        latitude = 55.7558,
+                        longitude = 37.6173,
+                    ),
+                ),
+                viewModel.state.value.favoriteCities,
             )
         } finally {
             Dispatchers.resetMain()
@@ -299,6 +336,173 @@ public class WeatherViewModelTest {
     }
 
     @Test
+    public fun favoriteCityClickedLoadsWeatherForFavoriteCity(): Unit = runTest {
+        Dispatchers.setMain(StandardTestDispatcher(testScheduler))
+        try {
+            val repository = CountingWeatherRepository(
+                weatherResult = Result.success(createWeather(cityName = "Москва")),
+            )
+            val cityHistoryRepository = RecordingCityHistoryRepository()
+            val viewModel = createViewModel(
+                repository = repository,
+                cityHistoryRepository = cityHistoryRepository,
+                favoriteCityRepository = RecordingFavoriteCityRepository(
+                    initialEntries = listOf(createFavoriteEntry()),
+                ),
+            )
+
+            viewModel.onViewEventOccurred(
+                WeatherEvent.FavoriteCityClicked(
+                    FavoriteCityUiModel(
+                        name = "Москва",
+                        country = "Россия",
+                        displayName = "Москва, Россия",
+                        latitude = 55.7558,
+                        longitude = 37.6173,
+                    ),
+                ),
+            )
+            advanceUntilIdle()
+
+            val state = assertIs<WeatherState.Content>(viewModel.state.value)
+            assertEquals("Москва", state.weather.cityName)
+            assertEquals("Москва", state.cityQuery)
+            assertEquals(true, state.canToggleFavorite)
+            assertEquals(true, state.isFavorite)
+            assertEquals(0, repository.currentLocationLoadCount)
+            assertEquals(1, repository.selectedLocationLoadCount)
+            assertEquals(
+                SelectedWeatherLocation.City(
+                    name = "Москва",
+                    latitude = 55.7558,
+                    longitude = 37.6173,
+                ),
+                repository.lastSelectedLocation,
+            )
+            assertEquals(
+                listOf(
+                    CityHistoryEntry(
+                        name = "Москва",
+                        country = "Россия",
+                        latitude = 55.7558,
+                        longitude = 37.6173,
+                        selectedAtEpochMillis = TEST_SELECTED_AT_EPOCH_MILLIS,
+                    ),
+                ),
+                cityHistoryRepository.savedEntries,
+            )
+        } finally {
+            Dispatchers.resetMain()
+        }
+    }
+
+    @Test
+    public fun favoriteClickedAddsCurrentSelectedCityAndUpdatesState(): Unit = runTest {
+        Dispatchers.setMain(StandardTestDispatcher(testScheduler))
+        try {
+            val favoriteCityRepository = RecordingFavoriteCityRepository()
+            val viewModel = createViewModel(
+                weatherResult = Result.success(createWeather(cityName = "Москва")),
+                citySearchRepository = CountingCitySearchRepository(Result.success(createCityCandidates())),
+                favoriteCityRepository = favoriteCityRepository,
+            )
+
+            viewModel.onViewEventOccurred(WeatherEvent.CityQueryChanged("Москва"))
+            viewModel.onViewEventOccurred(WeatherEvent.CitySearchSubmitted)
+            advanceUntilIdle()
+
+            val initialState = assertIs<WeatherState.Content>(viewModel.state.value)
+            assertEquals(true, initialState.canToggleFavorite)
+            assertEquals(false, initialState.isFavorite)
+
+            viewModel.onViewEventOccurred(WeatherEvent.FavoriteClicked)
+            advanceUntilIdle()
+
+            val updatedState = assertIs<WeatherState.Content>(viewModel.state.value)
+            assertEquals(true, updatedState.isFavorite)
+            assertEquals(listOf(createFavoriteEntry()), favoriteCityRepository.entries)
+            assertEquals(
+                listOf(
+                    FavoriteCityUiModel(
+                        name = "Москва",
+                        country = "Россия",
+                        displayName = "Москва, Россия",
+                        latitude = 55.7558,
+                        longitude = 37.6173,
+                    ),
+                ),
+                updatedState.favoriteCities,
+            )
+        } finally {
+            Dispatchers.resetMain()
+        }
+    }
+
+    @Test
+    public fun favoriteClickedRemovesCurrentSelectedCityAndUpdatesState(): Unit = runTest {
+        Dispatchers.setMain(StandardTestDispatcher(testScheduler))
+        try {
+            val favoriteCityRepository = RecordingFavoriteCityRepository(
+                initialEntries = listOf(createFavoriteEntry()),
+            )
+            val viewModel = createViewModel(
+                repository = CountingWeatherRepository(Result.success(createWeather(cityName = "Москва"))),
+                favoriteCityRepository = favoriteCityRepository,
+            )
+
+            viewModel.onViewEventOccurred(
+                WeatherEvent.FavoriteCityClicked(
+                    FavoriteCityUiModel(
+                        name = "Москва",
+                        country = "Россия",
+                        displayName = "Москва, Россия",
+                        latitude = 55.7558,
+                        longitude = 37.6173,
+                    ),
+                ),
+            )
+            advanceUntilIdle()
+
+            assertEquals(true, assertIs<WeatherState.Content>(viewModel.state.value).isFavorite)
+
+            viewModel.onViewEventOccurred(WeatherEvent.FavoriteClicked)
+            advanceUntilIdle()
+
+            val updatedState = assertIs<WeatherState.Content>(viewModel.state.value)
+            assertEquals(false, updatedState.isFavorite)
+            assertEquals(emptyList(), favoriteCityRepository.entries)
+            assertEquals(emptyList(), updatedState.favoriteCities)
+        } finally {
+            Dispatchers.resetMain()
+        }
+    }
+
+    @Test
+    public fun favoriteClickedHasNoEffectForCurrentLocationWeather(): Unit = runTest {
+        Dispatchers.setMain(StandardTestDispatcher(testScheduler))
+        try {
+            val favoriteCityRepository = RecordingFavoriteCityRepository()
+            val viewModel = createViewModel(
+                weatherResult = Result.success(createWeather()),
+                favoriteCityRepository = favoriteCityRepository,
+            )
+
+            viewModel.onViewEventOccurred(
+                WeatherEvent.LocationPermissionResult(granted = true, permanentlyDenied = false),
+            )
+            viewModel.onViewEventOccurred(WeatherEvent.FavoriteClicked)
+            advanceUntilIdle()
+
+            val state = assertIs<WeatherState.Content>(viewModel.state.value)
+            assertEquals(false, state.canToggleFavorite)
+            assertEquals(false, state.isFavorite)
+            assertEquals(emptyList(), favoriteCityRepository.entries)
+        } finally {
+            Dispatchers.resetMain()
+        }
+    }
+
+    @Test
     public fun citySearchSubmittedSavesFirstCityCandidateAfterWeatherSuccess(): Unit = runTest {
         Dispatchers.setMain(StandardTestDispatcher(testScheduler))
         try {
@@ -408,6 +612,7 @@ public class WeatherViewModelTest {
         repository: CurrentWeatherRepository = CountingWeatherRepository(weatherResult),
         citySearchRepository: CitySearchRepository = CountingCitySearchRepository(Result.success(emptyList())),
         cityHistoryRepository: CityHistoryRepository = RecordingCityHistoryRepository(),
+        favoriteCityRepository: FavoriteCityRepository = RecordingFavoriteCityRepository(),
         currentTimeMillis: () -> Long = { TEST_SELECTED_AT_EPOCH_MILLIS },
     ): WeatherViewModel =
         WeatherViewModel(
@@ -422,6 +627,15 @@ public class WeatherViewModelTest {
             ),
             saveCityHistory = SaveCityHistoryInteractor(
                 repository = cityHistoryRepository,
+            ),
+            getFavoriteCities = GetFavoriteCitiesInteractor(
+                repository = favoriteCityRepository,
+            ),
+            addFavoriteCity = AddFavoriteCityInteractor(
+                repository = favoriteCityRepository,
+            ),
+            removeFavoriteCity = RemoveFavoriteCityInteractor(
+                repository = favoriteCityRepository,
             ),
             currentTimeMillis = currentTimeMillis,
             mapper = WeatherUiMapper(),
@@ -468,6 +682,14 @@ public class WeatherViewModelTest {
                 longitude = 84.9476,
                 selectedAtEpochMillis = 1_722_000_000_000,
             ),
+        )
+
+    private fun createFavoriteEntry(): FavoriteCityEntry =
+        FavoriteCityEntry(
+            name = "Москва",
+            country = "Россия",
+            latitude = 55.7558,
+            longitude = 37.6173,
         )
 
     private class CountingWeatherRepository(
@@ -540,6 +762,32 @@ public class WeatherViewModelTest {
             recentCitiesCount += 1
             lastLimit = limit
             return recentResult ?: Result.success(recentEntries.take(limit))
+        }
+    }
+
+    private class RecordingFavoriteCityRepository(
+        initialEntries: List<FavoriteCityEntry> = emptyList(),
+    ) : FavoriteCityRepository {
+
+        val entries: MutableList<FavoriteCityEntry> = initialEntries.toMutableList()
+
+        var favoriteCitiesCount: Int = 0
+            private set
+
+        override suspend fun addCity(entry: FavoriteCityEntry): Result<Unit> {
+            entries.removeAll { it.latitude == entry.latitude && it.longitude == entry.longitude }
+            entries += entry
+            return Result.success(Unit)
+        }
+
+        override suspend fun removeCity(entry: FavoriteCityEntry): Result<Unit> {
+            entries.removeAll { it.latitude == entry.latitude && it.longitude == entry.longitude }
+            return Result.success(Unit)
+        }
+
+        override suspend fun favoriteCities(): Result<List<FavoriteCityEntry>> {
+            favoriteCitiesCount += 1
+            return Result.success(entries)
         }
     }
 

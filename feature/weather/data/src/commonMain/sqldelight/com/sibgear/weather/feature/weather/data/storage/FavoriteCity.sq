@@ -1,0 +1,33 @@
+CREATE TABLE favorite_city_entry (
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    country TEXT,
+    latitude REAL NOT NULL,
+    longitude REAL NOT NULL,
+    CONSTRAINT favorite_city_entry_unique_location UNIQUE(latitude, longitude)
+);
+
+upsertFavorite:
+INSERT OR REPLACE INTO favorite_city_entry(
+    name,
+    country,
+    latitude,
+    longitude
+)
+VALUES (?, ?, ?, ?);
+
+selectFavorites:
+SELECT
+    name,
+    country,
+    latitude,
+    longitude
+FROM favorite_city_entry
+ORDER BY name COLLATE NOCASE ASC;
+
+deleteFavorite:
+DELETE FROM favorite_city_entry
+WHERE latitude = ? AND longitude = ?;
+
+deleteAllFavorites:
+DELETE FROM favorite_city_entry;

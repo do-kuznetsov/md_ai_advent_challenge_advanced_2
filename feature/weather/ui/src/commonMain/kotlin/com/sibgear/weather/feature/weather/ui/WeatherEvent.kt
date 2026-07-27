@@ -16,6 +16,12 @@ public sealed interface WeatherEvent {
         public val city: CityHistoryUiModel,
     ) : WeatherEvent
 
+    public data class FavoriteCityClicked(
+        public val city: FavoriteCityUiModel,
+    ) : WeatherEvent
+
+    public data object FavoriteClicked : WeatherEvent
+
     public data class LocationPermissionResult(
         public val granted: Boolean,
         public val permanentlyDenied: Boolean,
