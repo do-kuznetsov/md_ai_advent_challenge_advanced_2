@@ -1,0 +1,33 @@
+CREATE TABLE city_history_entry (
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    country TEXT,
+    latitude REAL NOT NULL,
+    longitude REAL NOT NULL,
+    selected_at_epoch_millis INTEGER NOT NULL,
+    CONSTRAINT city_history_entry_unique_location UNIQUE(name, latitude, longitude)
+);
+
+upsert:
+INSERT OR REPLACE INTO city_history_entry(
+    name,
+    country,
+    latitude,
+    longitude,
+    selected_at_epoch_millis
+)
+VALUES (?, ?, ?, ?, ?);
+
+selectRecent:
+SELECT
+    name,
+    country,
+    latitude,
+    longitude,
+    selected_at_epoch_millis
+FROM city_history_entry
+ORDER BY selected_at_epoch_millis DESC
+LIMIT ?;
+
+deleteAll:
+DELETE FROM city_history_entry;

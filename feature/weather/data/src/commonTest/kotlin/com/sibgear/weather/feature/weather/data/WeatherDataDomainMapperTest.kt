@@ -2,6 +2,7 @@ package com.sibgear.weather.feature.weather.data
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.mock.MockEngine
@@ -19,6 +20,7 @@ import com.sibgear.weather.feature.reversegeocoding.domain.CityName
 import com.sibgear.weather.feature.reversegeocoding.domain.ResolveCityNameInteractor
 import com.sibgear.weather.feature.reversegeocoding.domain.ReverseGeocodingRepository
 import com.sibgear.weather.feature.weather.domain.CurrentWeatherLocationUnavailableException
+import com.sibgear.weather.feature.weather.domain.SelectedWeatherLocation
 
 public class WeatherDataDomainMapperTest {
 
@@ -41,6 +43,105 @@ public class WeatherDataDomainMapperTest {
         assertEquals(62, weather.cloudCoverPercent)
         assertEquals(12.6, weather.windSpeedKilometersPerHour)
         assertEquals(0.4, weather.precipitationMillimeters)
+    }
+
+    @Test
+    public fun loadsCurrentWeatherByCurrentLocationCoordinates(): Unit = runTest {
+        var resolvedLatitude: Double? = null
+        var resolvedLongitude: Double? = null
+        val api = OpenMeteoApi(
+            HttpClient(
+                MockEngine { request ->
+                    assertEquals("55.03", request.url.parameters["latitude"])
+                    assertEquals("82.92", request.url.parameters["longitude"])
+                    respond(
+                        content = """
+                            {"current":{"temperature_2m":18.4,"cloud_cover":62,"wind_speed_10m":12.6,"precipitation":0.4}}
+                        """.trimIndent(),
+                        headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()),
+                    )
+                },
+            ) {
+                install(ContentNegotiation) {
+                    json(Json { ignoreUnknownKeys = true })
+                }
+            },
+        )
+        val repository = CurrentWeatherRepositoryImpl(
+            currentLocationProvider = object : CurrentLocationProvider {
+                override suspend fun currentLocation(): Result<Coordinates> = Result.success(Coordinates(55.03, 82.92))
+            },
+            resolveCityName = ResolveCityNameInteractor(
+                object : ReverseGeocodingRepository {
+                    override suspend fun resolveCityName(latitude: Double, longitude: Double): Result<CityName?> {
+                        resolvedLatitude = latitude
+                        resolvedLongitude = longitude
+                        return Result.success(CityName("Новосибирск"))
+                    }
+                },
+            ),
+            api = api,
+            mapper = WeatherDataDomainMapper(),
+        )
+        val weather = repository.loadCurrentWeather().getOrThrow()
+
+        assertEquals("Новосибирск", weather.cityName)
+        assertEquals(55.03, resolvedLatitude)
+        assertEquals(82.92, resolvedLongitude)
+    }
+
+    @Test
+    public fun loadsSelectedCityWeatherByProvidedCoordinatesAndName(): Unit = runTest {
+        var currentLocationRequested = false
+        var reverseGeocodingRequested = false
+        val api = OpenMeteoApi(
+            HttpClient(
+                MockEngine { request ->
+                    assertEquals("55.75", request.url.parameters["latitude"])
+                    assertEquals("37.62", request.url.parameters["longitude"])
+                    respond(
+                        content = """
+                            {"current":{"temperature_2m":21.0,"cloud_cover":10,"wind_speed_10m":5.0,"precipitation":0.0}}
+                        """.trimIndent(),
+                        headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()),
+                    )
+                },
+            ) {
+                install(ContentNegotiation) {
+                    json(Json { ignoreUnknownKeys = true })
+                }
+            },
+        )
+        val repository = CurrentWeatherRepositoryImpl(
+            currentLocationProvider = object : CurrentLocationProvider {
+                override suspend fun currentLocation(): Result<Coordinates> {
+                    currentLocationRequested = true
+                    return Result.failure(IllegalStateException("current location is not expected"))
+                }
+            },
+            resolveCityName = ResolveCityNameInteractor(
+                object : ReverseGeocodingRepository {
+                    override suspend fun resolveCityName(latitude: Double, longitude: Double): Result<CityName?> {
+                        reverseGeocodingRequested = true
+                        return Result.failure(IllegalStateException("reverse geocoding is not expected"))
+                    }
+                },
+            ),
+            api = api,
+            mapper = WeatherDataDomainMapper(),
+        )
+        val weather = repository.loadWeather(
+            SelectedWeatherLocation.City(
+                name = "Москва",
+                latitude = 55.75,
+                longitude = 37.62,
+            ),
+        ).getOrThrow()
+
+        assertEquals("Москва", weather.cityName)
+        assertEquals(21.0, weather.temperatureCelsius)
+        assertFalse(currentLocationRequested)
+        assertFalse(reverseGeocodingRequested)
     }
 
     @Test

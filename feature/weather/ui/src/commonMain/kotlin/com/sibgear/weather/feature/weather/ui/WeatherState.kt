@@ -2,24 +2,55 @@ package com.sibgear.weather.feature.weather.ui
 
 public sealed interface WeatherState {
 
-    public data object LoadingLocation : WeatherState
+    public val cityQuery: String
+    public val cityHistory: List<CityHistoryUiModel>
+    public val favoriteCities: List<FavoriteCityUiModel>
 
-    public data object LoadingWeather : WeatherState
+    public data class LoadingLocation(
+        public override val cityQuery: String = "",
+        public override val cityHistory: List<CityHistoryUiModel> = emptyList(),
+        public override val favoriteCities: List<FavoriteCityUiModel> = emptyList(),
+    ) : WeatherState
+
+    public data class LoadingWeather(
+        public override val cityQuery: String = "",
+        public override val cityHistory: List<CityHistoryUiModel> = emptyList(),
+        public override val favoriteCities: List<FavoriteCityUiModel> = emptyList(),
+    ) : WeatherState
 
     public data class Content(
         public val weather: WeatherUiModel,
+        public val canToggleFavorite: Boolean = false,
+        public val isFavorite: Boolean = false,
+        public override val cityQuery: String = "",
+        public override val cityHistory: List<CityHistoryUiModel> = emptyList(),
+        public override val favoriteCities: List<FavoriteCityUiModel> = emptyList(),
     ) : WeatherState
 
     public data class Error(
         public val message: String,
         public val canOpenSettings: Boolean,
+        public override val cityQuery: String = "",
+        public override val cityHistory: List<CityHistoryUiModel> = emptyList(),
+        public override val favoriteCities: List<FavoriteCityUiModel> = emptyList(),
     ) : WeatherState
 }
 
 public data class WeatherUiModel(
     public val cityName: String,
     public val temperature: String,
+    public val conditionIcon: WeatherIcon,
     public val cloudCover: String,
+    public val cloudCoverIcon: WeatherIcon,
     public val windSpeed: String,
+    public val windSpeedIcon: WeatherIcon,
     public val precipitation: String,
+    public val precipitationIcon: WeatherIcon,
 )
+
+public enum class WeatherIcon {
+    Sunny,
+    Cloud,
+    Wind,
+    Precipitation,
+}

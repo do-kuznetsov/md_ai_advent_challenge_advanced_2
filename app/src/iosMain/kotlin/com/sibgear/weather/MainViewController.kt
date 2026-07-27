@@ -4,6 +4,8 @@ import androidx.compose.ui.window.ComposeUIViewController
 import com.sibgear.weather.core.location.LocationCoreModule
 import com.sibgear.weather.feature.reversegeocoding.data.ReverseGeocodingDataModule
 import com.sibgear.weather.feature.weather.data.WeatherDataModule
+import com.sibgear.weather.feature.weather.data.provideIosCityHistoryRepository
+import com.sibgear.weather.feature.weather.data.provideIosFavoriteCityRepository
 import com.sibgear.weather.feature.weather.ui.WeatherEffect
 import com.sibgear.weather.feature.weather.ui.WeatherEvent
 import com.sibgear.weather.feature.weather.ui.WeatherScreenComponent
@@ -17,16 +19,21 @@ import platform.CoreLocation.kCLAuthorizationStatusDenied
 import platform.Foundation.NSURL
 import platform.UIKit.UIApplication
 import platform.UIKit.UIApplicationOpenSettingsURLString
-import platform.darwin.NSObject
 import platform.UIKit.UIViewController
+import platform.darwin.NSObject
+import platform.posix.time
 
 @OptIn(ExperimentalForeignApi::class)
 public fun MainViewController(): UIViewController {
     val component = WeatherScreenComponent(
-        repository = WeatherDataModule.provide(
+        weatherRepository = WeatherDataModule.provide(
             currentLocationProvider = LocationCoreModule.provide(),
             reverseGeocodingRepository = ReverseGeocodingDataModule.provide(),
         ),
+        citySearchRepository = WeatherDataModule.provideCitySearchRepository(),
+        cityHistoryRepository = WeatherDataModule.provideIosCityHistoryRepository(),
+        favoriteCityRepository = WeatherDataModule.provideIosFavoriteCityRepository(),
+        currentTimeMillis = { time(null) * MILLIS_PER_SECOND },
     )
     val permissionHandler = IosWeatherPermissionHandler(component)
 
@@ -34,6 +41,8 @@ public fun MainViewController(): UIViewController {
         WeatherApp(component = component, onEffect = permissionHandler::handle)
     }
 }
+
+private const val MILLIS_PER_SECOND: Long = 1_000
 
 @OptIn(ExperimentalForeignApi::class)
 private class IosWeatherPermissionHandler(

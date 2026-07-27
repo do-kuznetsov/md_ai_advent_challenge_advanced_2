@@ -5,6 +5,7 @@ import com.sibgear.weather.feature.reversegeocoding.domain.ResolveCityNameIntera
 import com.sibgear.weather.feature.weather.domain.CurrentWeather
 import com.sibgear.weather.feature.weather.domain.CurrentWeatherLocationUnavailableException
 import com.sibgear.weather.feature.weather.domain.CurrentWeatherRepository
+import com.sibgear.weather.feature.weather.domain.SelectedWeatherLocation
 
 internal class CurrentWeatherRepositoryImpl(
     private val currentLocationProvider: CurrentLocationProvider,
@@ -18,17 +19,28 @@ internal class CurrentWeatherRepositoryImpl(
             return Result.failure(CurrentWeatherLocationUnavailableException())
         }
 
-        return runCatching {
-            val cityName = resolveCityName(coordinates.latitude, coordinates.longitude)
-                .getOrNull()
-                ?.value
-                ?: CURRENT_LOCATION_NAME
+        return loadWeather(
+            location = SelectedWeatherLocation.Coordinates(
+                latitude = coordinates.latitude,
+                longitude = coordinates.longitude,
+            ),
+        )
+    }
+
+    override suspend fun loadWeather(location: SelectedWeatherLocation): Result<CurrentWeather> =
+        runCatching {
+            val cityName = when (location) {
+                is SelectedWeatherLocation.City -> location.name
+                is SelectedWeatherLocation.Coordinates -> resolveCityName(location.latitude, location.longitude)
+                    .getOrNull()
+                    ?.value
+                    ?: CURRENT_LOCATION_NAME
+            }
             mapper.map(
-                source = api.getCurrentForecast(coordinates.latitude, coordinates.longitude),
+                source = api.getCurrentForecast(location.latitude, location.longitude),
                 cityName = cityName,
             )
         }
-    }
 
     private companion object {
 

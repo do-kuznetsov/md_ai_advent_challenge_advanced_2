@@ -24,4 +24,11 @@ public class WeatherDataModuleTest {
 
         assertIs<CurrentWeatherRepositoryImpl>(repository)
     }
+
+    @Test
+    public fun providesCitySearchRepositoryImplementation(): Unit {
+        val repository = WeatherDataModule.provideCitySearchRepository()
+
+        assertIs<CitySearchRepositoryImpl>(repository)
+    }
 }

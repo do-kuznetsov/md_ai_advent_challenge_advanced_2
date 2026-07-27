@@ -19,8 +19,28 @@ public class WeatherUiMapperTest {
         )
 
         assertEquals("18 C", model.temperature)
+        assertEquals(WeatherIcon.Cloud, model.conditionIcon)
         assertEquals("62 %", model.cloudCover)
+        assertEquals(WeatherIcon.Cloud, model.cloudCoverIcon)
         assertEquals("13 км/ч", model.windSpeed)
+        assertEquals(WeatherIcon.Wind, model.windSpeedIcon)
         assertEquals("0.4 мм", model.precipitation)
+        assertEquals(WeatherIcon.Precipitation, model.precipitationIcon)
+    }
+
+    @Test
+    public fun mapsSunnyConditionIconForLowCloudCover(): Unit {
+        val model = WeatherUiMapper().map(
+            CurrentWeather(
+                cityName = "Новосибирск",
+                temperatureCelsius = 21.0,
+                cloudCoverPercent = 12,
+                windSpeedKilometersPerHour = 3.0,
+                precipitationMillimeters = 0.0,
+            ),
+        )
+
+        assertEquals(WeatherIcon.Sunny, model.conditionIcon)
+        assertEquals(WeatherIcon.Sunny, model.cloudCoverIcon)
     }
 }

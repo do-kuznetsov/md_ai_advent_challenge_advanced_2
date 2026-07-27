@@ -4,23 +4,40 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.Button
 import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.material.Divider
+import androidx.compose.material.Icon
+import androidx.compose.material.IconButton
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Surface
 import androidx.compose.material.Text
+import androidx.compose.material.TextField
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Air
+import androidx.compose.material.icons.filled.Cloud
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.Opacity
+import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.flow.collect
 
@@ -40,23 +57,148 @@ public fun WeatherScreen(
     }
 
     Surface(modifier = modifier.fillMaxSize()) {
-        when (val currentState = state) {
-            WeatherState.LoadingLocation -> LoadingContent("Определяем местоположение")
-            WeatherState.LoadingWeather -> LoadingContent("Получаем погоду")
-            is WeatherState.Content -> WeatherContent(currentState.weather)
-            is WeatherState.Error -> ErrorContent(
-                state = currentState,
-                onRetryClicked = { viewModel.onViewEventOccurred(WeatherEvent.RetryClicked) },
-                onSettingsClicked = { viewModel.onViewEventOccurred(WeatherEvent.SettingsClicked) },
+        Column(
+            modifier = Modifier.fillMaxSize().padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            CitySearchContent(
+                cityQuery = state.cityQuery,
+                onCityQueryChanged = { viewModel.onViewEventOccurred(WeatherEvent.CityQueryChanged(it)) },
+                onCitySearchSubmitted = { viewModel.onViewEventOccurred(WeatherEvent.CitySearchSubmitted) },
             )
+            FavoriteCitiesContent(
+                cities = state.favoriteCities,
+                onCityClicked = { viewModel.onViewEventOccurred(WeatherEvent.FavoriteCityClicked(it)) },
+            )
+            CityHistoryContent(
+                cities = state.cityHistory,
+                onCityClicked = { viewModel.onViewEventOccurred(WeatherEvent.HistoryCityClicked(it)) },
+            )
+
+            when (val currentState = state) {
+                is WeatherState.LoadingLocation -> LoadingContent(
+                    message = "Определяем местоположение",
+                    modifier = Modifier.weight(1f),
+                )
+                is WeatherState.LoadingWeather -> LoadingContent(
+                    message = "Получаем погоду",
+                    modifier = Modifier.weight(1f),
+                )
+                is WeatherState.Content -> WeatherContent(
+                    weather = currentState.weather,
+                    canToggleFavorite = currentState.canToggleFavorite,
+                    isFavorite = currentState.isFavorite,
+                    onFavoriteClicked = { viewModel.onViewEventOccurred(WeatherEvent.FavoriteClicked) },
+                    modifier = Modifier.weight(1f),
+                )
+                is WeatherState.Error -> ErrorContent(
+                    state = currentState,
+                    onRetryClicked = { viewModel.onViewEventOccurred(WeatherEvent.RetryClicked) },
+                    onSettingsClicked = { viewModel.onViewEventOccurred(WeatherEvent.SettingsClicked) },
+                    modifier = Modifier.weight(1f),
+                )
+            }
         }
     }
 }
 
 @Composable
-private fun LoadingContent(message: String) {
+private fun FavoriteCitiesContent(
+    cities: List<FavoriteCityUiModel>,
+    onCityClicked: (FavoriteCityUiModel) -> Unit,
+) {
+    if (cities.isEmpty()) {
+        return
+    }
+
     Column(
-        modifier = Modifier.fillMaxSize().padding(24.dp),
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(
+            text = "Избранное",
+            style = MaterialTheme.typography.subtitle2,
+            fontWeight = FontWeight.Medium,
+        )
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            cities.forEach { city ->
+                Button(onClick = { onCityClicked(city) }) {
+                    Icon(
+                        imageVector = Icons.Filled.Favorite,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(text = city.displayName)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CityHistoryContent(
+    cities: List<CityHistoryUiModel>,
+    onCityClicked: (CityHistoryUiModel) -> Unit,
+) {
+    if (cities.isEmpty()) {
+        return
+    }
+
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(
+            text = "Недавние города",
+            style = MaterialTheme.typography.subtitle2,
+            fontWeight = FontWeight.Medium,
+        )
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            cities.forEach { city ->
+                Button(onClick = { onCityClicked(city) }) {
+                    Text(text = city.displayName)
+                    Spacer(Modifier.width(8.dp))
+                    Text(text = "Показать")
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CitySearchContent(
+    cityQuery: String,
+    onCityQueryChanged: (String) -> Unit,
+    onCitySearchSubmitted: () -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        TextField(
+            value = cityQuery,
+            onValueChange = onCityQueryChanged,
+            modifier = Modifier.weight(1f),
+            label = { Text("Город") },
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+            keyboardActions = KeyboardActions(onSearch = { onCitySearchSubmitted() }),
+        )
+        Button(
+            onClick = onCitySearchSubmitted,
+            enabled = cityQuery.isNotBlank(),
+        ) {
+            Text("Найти")
+        }
+    }
+}
+
+@Composable
+private fun LoadingContent(message: String, modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier.fillMaxSize(),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
@@ -67,42 +209,100 @@ private fun LoadingContent(message: String) {
 }
 
 @Composable
-private fun WeatherContent(weather: WeatherUiModel) {
+private fun WeatherContent(
+    weather: WeatherUiModel,
+    canToggleFavorite: Boolean,
+    isFavorite: Boolean,
+    onFavoriteClicked: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     Column(
-        modifier = Modifier.fillMaxSize().padding(24.dp),
+        modifier = modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Text(text = weather.cityName, style = MaterialTheme.typography.h5)
-        Text(
-            text = weather.temperature,
-            style = MaterialTheme.typography.h2,
-            fontWeight = FontWeight.Bold,
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(text = weather.cityName, style = MaterialTheme.typography.h5)
+            if (canToggleFavorite) {
+                IconButton(onClick = onFavoriteClicked) {
+                    Icon(
+                        imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
+                        contentDescription = if (isFavorite) {
+                            "Убрать из избранного"
+                        } else {
+                            "Добавить в избранное"
+                        },
+                    )
+                }
+            }
+        }
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            WeatherIconView(icon = weather.conditionIcon, size = 48.dp)
+            Text(
+                text = weather.temperature,
+                style = MaterialTheme.typography.h2,
+                fontWeight = FontWeight.Bold,
+            )
+        }
         Divider()
-        WeatherMetric(label = "Облачность", value = weather.cloudCover)
-        WeatherMetric(label = "Ветер", value = weather.windSpeed)
-        WeatherMetric(label = "Осадки", value = weather.precipitation)
+        WeatherMetric(label = "Облачность", value = weather.cloudCover, icon = weather.cloudCoverIcon)
+        WeatherMetric(label = "Ветер", value = weather.windSpeed, icon = weather.windSpeedIcon)
+        WeatherMetric(label = "Осадки", value = weather.precipitation, icon = weather.precipitationIcon)
         Spacer(Modifier.weight(1f))
         Text(text = "Данные: Open-Meteo.com", style = MaterialTheme.typography.caption)
     }
 }
 
 @Composable
-private fun WeatherMetric(label: String, value: String) {
-    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-        Text(text = label, style = MaterialTheme.typography.body1)
+private fun WeatherMetric(label: String, value: String, icon: WeatherIcon) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            WeatherIconView(icon = icon, size = 24.dp)
+            Text(text = label, style = MaterialTheme.typography.body1)
+        }
         Text(text = value, style = MaterialTheme.typography.body1, fontWeight = FontWeight.Medium)
     }
 }
+
+@Composable
+private fun WeatherIconView(icon: WeatherIcon, size: Dp) {
+    Icon(
+        imageVector = icon.imageVector(),
+        contentDescription = null,
+        modifier = Modifier.size(size),
+    )
+}
+
+private fun WeatherIcon.imageVector(): ImageVector =
+    when (this) {
+        WeatherIcon.Sunny -> Icons.Filled.WbSunny
+        WeatherIcon.Cloud -> Icons.Filled.Cloud
+        WeatherIcon.Wind -> Icons.Filled.Air
+        WeatherIcon.Precipitation -> Icons.Filled.Opacity
+    }
 
 @Composable
 private fun ErrorContent(
     state: WeatherState.Error,
     onRetryClicked: () -> Unit,
     onSettingsClicked: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     Column(
-        modifier = Modifier.fillMaxSize().padding(24.dp),
+        modifier = modifier.fillMaxSize(),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
