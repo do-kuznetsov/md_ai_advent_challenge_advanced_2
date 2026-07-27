@@ -11,7 +11,7 @@ internal data class OpenMeteoGeocodingResponse(
 @Serializable
 internal data class OpenMeteoGeocodingCandidateDto(
     @SerialName("name") val name: String,
-    @SerialName("country") val country: String,
+    @SerialName("country") val country: String? = null,
     @SerialName("latitude") val latitude: Double,
     @SerialName("longitude") val longitude: Double,
 )
