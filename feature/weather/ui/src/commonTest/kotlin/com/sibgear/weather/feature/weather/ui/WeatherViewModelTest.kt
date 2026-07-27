@@ -146,7 +146,14 @@ public class WeatherViewModelTest {
     public fun permanentPermissionDenialOffersSettings(): Unit = runTest {
         Dispatchers.setMain(StandardTestDispatcher(testScheduler))
         try {
-            val viewModel = createViewModel()
+            val repository = CountingWeatherRepository(Result.success(createWeather()))
+            val citySearchRepository = CountingCitySearchRepository(Result.success(createCityCandidates()))
+            val viewModel = createViewModel(
+                repository = repository,
+                citySearchRepository = citySearchRepository,
+            )
+
+            viewModel.onViewEventOccurred(WeatherEvent.CityQueryChanged("Москва"))
 
             viewModel.onViewEventOccurred(
                 WeatherEvent.LocationPermissionResult(granted = false, permanentlyDenied = true),
@@ -154,7 +161,52 @@ public class WeatherViewModelTest {
             advanceUntilIdle()
 
             val state = assertIs<WeatherState.Error>(viewModel.state.value)
+            assertEquals("Для прогноза нужен доступ к геолокации.", state.message)
             assertEquals(true, state.canOpenSettings)
+            assertEquals("Москва", state.cityQuery)
+            assertEquals(0, repository.currentLocationLoadCount)
+            assertEquals(0, repository.selectedLocationLoadCount)
+            assertEquals(0, citySearchRepository.searchCount)
+        } finally {
+            Dispatchers.resetMain()
+        }
+    }
+
+    @Test
+    public fun permissionDenialKeepsCityFlowStateWithoutLoadingWeather(): Unit = runTest {
+        Dispatchers.setMain(StandardTestDispatcher(testScheduler))
+        try {
+            val repository = CountingWeatherRepository(Result.success(createWeather()))
+            val citySearchRepository = CountingCitySearchRepository(Result.success(createCityCandidates()))
+            val cityHistoryRepository = RecordingCityHistoryRepository(
+                initialRecentEntries = createCityHistoryEntries(),
+            )
+            val favoriteCityRepository = RecordingFavoriteCityRepository(
+                initialEntries = listOf(createFavoriteEntry()),
+            )
+            val viewModel = createViewModel(
+                repository = repository,
+                citySearchRepository = citySearchRepository,
+                cityHistoryRepository = cityHistoryRepository,
+                favoriteCityRepository = favoriteCityRepository,
+            )
+
+            viewModel.onViewEventOccurred(WeatherEvent.ScreenOpened)
+            viewModel.onViewEventOccurred(WeatherEvent.CityQueryChanged("Москва"))
+            viewModel.onViewEventOccurred(
+                WeatherEvent.LocationPermissionResult(granted = false, permanentlyDenied = false),
+            )
+            advanceUntilIdle()
+
+            val state = assertIs<WeatherState.Error>(viewModel.state.value)
+            assertEquals("Для прогноза нужен доступ к геолокации.", state.message)
+            assertEquals(false, state.canOpenSettings)
+            assertEquals("Москва", state.cityQuery)
+            assertEquals(2, state.cityHistory.size)
+            assertEquals(1, state.favoriteCities.size)
+            assertEquals(0, repository.currentLocationLoadCount)
+            assertEquals(0, repository.selectedLocationLoadCount)
+            assertEquals(0, citySearchRepository.searchCount)
         } finally {
             Dispatchers.resetMain()
         }
@@ -174,6 +226,53 @@ public class WeatherViewModelTest {
             val state = assertIs<WeatherState.Error>(viewModel.state.value)
             assertEquals("Не удалось получить погоду. Повторите попытку.", state.message)
             assertEquals(false, state.canOpenSettings)
+        } finally {
+            Dispatchers.resetMain()
+        }
+    }
+
+    @Test
+    public fun retryAfterCitySearchRequestsCurrentLocationWeather(): Unit = runTest {
+        Dispatchers.setMain(StandardTestDispatcher(testScheduler))
+        try {
+            val repository = CountingWeatherRepository(
+                weatherResult = Result.success(createWeather(cityName = "Новосибирск")),
+                selectedWeatherResult = Result.success(createWeather(cityName = "Москва")),
+            )
+            val viewModel = createViewModel(
+                repository = repository,
+                citySearchRepository = CountingCitySearchRepository(Result.success(createCityCandidates())),
+            )
+
+            viewModel.onViewEventOccurred(WeatherEvent.CityQueryChanged("Москва"))
+            viewModel.onViewEventOccurred(WeatherEvent.CitySearchSubmitted)
+            advanceUntilIdle()
+
+            val selectedCityState = assertIs<WeatherState.Content>(viewModel.state.value)
+            assertEquals("Москва", selectedCityState.weather.cityName)
+            assertEquals(true, selectedCityState.canToggleFavorite)
+            assertEquals(0, repository.currentLocationLoadCount)
+            assertEquals(1, repository.selectedLocationLoadCount)
+
+            val permissionRequest = async(start = CoroutineStart.UNDISPATCHED) { viewModel.effect.first() }
+            viewModel.onViewEventOccurred(WeatherEvent.RetryClicked)
+            advanceUntilIdle()
+
+            val loadingState = assertIs<WeatherState.LoadingLocation>(viewModel.state.value)
+            assertEquals(WeatherEffect.RequestLocationPermission, permissionRequest.await())
+            assertEquals("Москва", loadingState.cityQuery)
+
+            viewModel.onViewEventOccurred(
+                WeatherEvent.LocationPermissionResult(granted = true, permanentlyDenied = false),
+            )
+            advanceUntilIdle()
+
+            val currentLocationState = assertIs<WeatherState.Content>(viewModel.state.value)
+            assertEquals("Новосибирск", currentLocationState.weather.cityName)
+            assertEquals(false, currentLocationState.canToggleFavorite)
+            assertEquals(false, currentLocationState.isFavorite)
+            assertEquals(1, repository.currentLocationLoadCount)
+            assertEquals(1, repository.selectedLocationLoadCount)
         } finally {
             Dispatchers.resetMain()
         }
@@ -694,6 +793,7 @@ public class WeatherViewModelTest {
 
     private class CountingWeatherRepository(
         private val weatherResult: Result<CurrentWeather>,
+        private val selectedWeatherResult: Result<CurrentWeather> = weatherResult,
     ) : CurrentWeatherRepository {
 
         var currentLocationLoadCount: Int = 0
@@ -713,7 +813,7 @@ public class WeatherViewModelTest {
         override suspend fun loadWeather(location: SelectedWeatherLocation): Result<CurrentWeather> {
             selectedLocationLoadCount += 1
             lastSelectedLocation = location
-            return weatherResult
+            return selectedWeatherResult
         }
     }
 
