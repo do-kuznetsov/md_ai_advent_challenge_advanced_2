@@ -4,6 +4,10 @@
 # Log file
 *.log
 
+# Python cache
+__pycache__/
+*.py[cod]
+
 # BlueJ files
 *.ctxt
 
@@ -44,3 +48,4 @@ iosApp/Configuration/Local.xcconfig
 
 # Day 6 source SQL dumps
 ai_training/origin/*.sql
+.keys.txt
