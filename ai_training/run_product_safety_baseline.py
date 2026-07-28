@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run baseline responses for product-safety eval examples."""
+"""Run OpenRouter baseline responses for product-safety eval examples."""
 
 from __future__ import annotations
 
@@ -12,7 +12,8 @@ import urllib.request
 from pathlib import Path
 
 
-OPENAI_CHAT_COMPLETIONS_URL = "https://api.openai.com/v1/chat/completions"
+OPENROUTER_CHAT_COMPLETIONS_URL = "https://openrouter.ai/api/v1/chat/completions"
+OPENROUTER_KEY_NAMES = ("OPENROUTER_API_KEY", "openrouter_ai_key")
 
 
 def load_jsonl(path: Path) -> list[dict[str, object]]:
@@ -36,7 +37,47 @@ def write_jsonl(path: Path, rows: list[dict[str, object]]) -> None:
             target.write("\n")
 
 
-def openai_chat_completion(api_key: str, model: str, messages: list[dict[str, str]], timeout: int) -> dict[str, object]:
+def load_keys_file(path: Path) -> dict[str, str]:
+    if not path.exists():
+        return {}
+
+    result = {}
+    with path.open("r", encoding="utf-8", errors="replace") as source:
+        for line in source:
+            stripped = line.strip()
+            if not stripped or stripped.startswith("#"):
+                continue
+            if stripped.startswith("export "):
+                stripped = stripped[len("export ") :].strip()
+            if "=" in stripped:
+                key, value = stripped.split("=", 1)
+                result[key.strip()] = value.strip().strip('"').strip("'")
+            elif stripped.startswith("sk-or-"):
+                result["OPENROUTER_API_KEY"] = stripped
+    return result
+
+
+def openrouter_api_key(keys_file: Path) -> str | None:
+    for key_name in OPENROUTER_KEY_NAMES:
+        value = os.environ.get(key_name)
+        if value:
+            return value
+
+    keys = load_keys_file(keys_file)
+    for key_name in OPENROUTER_KEY_NAMES:
+        value = keys.get(key_name)
+        if value:
+            return value
+
+    return None
+
+
+def openrouter_chat_completion(
+    api_key: str,
+    model: str,
+    messages: list[dict[str, str]],
+    timeout: int,
+) -> dict[str, object]:
     payload = {
         "model": model,
         "messages": messages,
@@ -46,11 +87,12 @@ def openai_chat_completion(api_key: str, model: str, messages: list[dict[str, st
         },
     }
     request = urllib.request.Request(
-        OPENAI_CHAT_COMPLETIONS_URL,
+        OPENROUTER_CHAT_COMPLETIONS_URL,
         data=json.dumps(payload).encode("utf-8"),
         headers={
             "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json",
+            "X-OpenRouter-Title": "SibGear Day 6 Product Safety Baseline",
         },
         method="POST",
     )
@@ -60,7 +102,7 @@ def openai_chat_completion(api_key: str, model: str, messages: list[dict[str, st
             return json.loads(response.read().decode("utf-8"))
     except urllib.error.HTTPError as error:
         body = error.read().decode("utf-8", errors="replace")
-        raise RuntimeError(f"OpenAI API HTTP {error.code}: {body}") from error
+        raise RuntimeError(f"OpenRouter API HTTP {error.code}: {body}") from error
 
 
 def baseline_row(
@@ -100,21 +142,22 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--eval", type=Path, default=Path("ai_training/dataset/eval.jsonl"))
     parser.add_argument("--output", type=Path, default=Path("ai_training/baseline/baseline-responses.jsonl"))
-    parser.add_argument("--model", default="gpt-4o-mini")
+    parser.add_argument("--model", default="openai/gpt-4o-mini")
+    parser.add_argument("--keys-file", type=Path, default=Path(".keys.txt"))
     parser.add_argument("--limit", type=int, default=10)
     parser.add_argument("--timeout", type=int, default=60)
     parser.add_argument("--sleep-seconds", type=float, default=0.5)
     args = parser.parse_args()
 
-    api_key = os.environ.get("OPENAI_API_KEY")
+    api_key = openrouter_api_key(args.keys_file)
     if not api_key:
-        raise SystemExit("OPENAI_API_KEY is required to run baseline.")
+        raise SystemExit("OPENROUTER_API_KEY or openrouter_ai_key is required to run baseline.")
 
     eval_rows = load_jsonl(args.eval)[: args.limit]
     baseline_rows = []
     for index, row in enumerate(eval_rows, start=1):
         messages = row["messages"][:2]
-        response = openai_chat_completion(api_key, args.model, messages, args.timeout)
+        response = openrouter_chat_completion(api_key, args.model, messages, args.timeout)
         baseline_rows.append(baseline_row(index, row, args.model, response))
         time.sleep(args.sleep_seconds)
 

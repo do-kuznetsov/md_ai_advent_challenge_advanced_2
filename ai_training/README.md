@@ -152,6 +152,16 @@ python3 ai_training/validate_product_safety_dataset.py \
 
 Следующий пункт задания: baseline.
 
-Нужно взять 10 примеров из `ai_training/dataset/eval.jsonl`, прогнать через базовую модель `gpt-4o-mini` без fine-tune и сохранить ответы как точку отсчета.
+Нужно взять 10 примеров из `ai_training/dataset/eval.jsonl`, прогнать через базовую модель `openai/gpt-4o-mini` через OpenRouter без fine-tune и сохранить ответы как точку отсчета.
 
-Для реального baseline нужен `OPENAI_API_KEY` и network-доступ.
+Ключ OpenRouter хранится локально в `.keys.txt`; файл игнорируется Git. Runner читает `OPENROUTER_API_KEY` или `openrouter_ai_key` из env или `.keys.txt`.
+
+Команда:
+
+```bash
+python3 ai_training/run_product_safety_baseline.py \
+  --eval ai_training/dataset/eval.jsonl \
+  --output ai_training/baseline/baseline-responses.jsonl \
+  --model openai/gpt-4o-mini \
+  --limit 10
+```
