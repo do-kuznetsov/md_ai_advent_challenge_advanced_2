@@ -147,10 +147,10 @@ python3 ai_training/validate_product_safety_dataset.py \
 - [build_product_safety_messages.py](build_product_safety_messages.py);
 - [split_product_safety_dataset.py](split_product_safety_dataset.py);
 - [validate_product_safety_dataset.py](validate_product_safety_dataset.py).
+- [run_product_safety_baseline.py](run_product_safety_baseline.py).
+- [run_product_safety_fine_tune.py](run_product_safety_fine_tune.py).
 
-## Следующий шаг
-
-Следующий пункт задания: baseline.
+## Baseline
 
 Нужно взять 10 примеров из `ai_training/dataset/eval.jsonl`, прогнать через базовую модель `openai/gpt-4o-mini` через OpenRouter без fine-tune и сохранить ответы как точку отсчета.
 
@@ -165,3 +165,40 @@ python3 ai_training/run_product_safety_baseline.py \
   --model openai/gpt-4o-mini \
   --limit 10
 ```
+
+Результат:
+
+- [baseline/baseline-responses.jsonl](baseline/baseline-responses.jsonl);
+- 10 независимых запросов;
+- valid JSON: `10/10`;
+- exact target schema: `0/10`.
+
+Критерии оценки зафиксированы в [evaluation-criteria.md](evaluation-criteria.md).
+
+## Fine-Tune Client
+
+Fine-tune client подготовлен для OpenAI API, но по умолчанию работает в dry-run режиме и не запускает job.
+
+Dry-run:
+
+```bash
+python3 ai_training/run_product_safety_fine_tune.py \
+  --train ai_training/dataset/train.jsonl \
+  --eval ai_training/dataset/eval.jsonl \
+  --model gpt-4o-mini \
+  --suffix product-safety-day6
+```
+
+Что сделает реальный запуск с `--execute`:
+
+1. Провалидирует `train.jsonl` и `eval.jsonl`.
+2. Загрузит оба файла в OpenAI Files API с `purpose=fine-tune`.
+3. Создаст fine-tuning job для `gpt-4o-mini`.
+4. Будет polling-ом ждать terminal status.
+5. Сохранит job state в `ai_training/fine_tune/fine-tune-job.json`.
+
+Не запускай `--execute`, пока не принято отдельное решение о старте fine-tune job.
+
+## Следующий шаг
+
+Следующий пункт задания: собрать итоговый список артефактов и проверить, что все требуемые файлы есть.
