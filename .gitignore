@@ -4,6 +4,10 @@
 # Log file
 *.log
 
+# Python cache
+__pycache__/
+*.py[cod]
+
 # BlueJ files
 *.ctxt
 
@@ -41,3 +45,7 @@ local.properties
 !**/*.xcodeproj/xcshareddata/xcschemes/
 !**/*.xcodeproj/xcshareddata/xcschemes/*.xcscheme
 iosApp/Configuration/Local.xcconfig
+
+# Day 6 source SQL dumps
+ai_training/origin/*.sql
+.keys.txt
