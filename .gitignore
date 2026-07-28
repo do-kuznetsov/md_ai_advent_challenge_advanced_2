@@ -41,3 +41,6 @@ local.properties
 !**/*.xcodeproj/xcshareddata/xcschemes/
 !**/*.xcodeproj/xcshareddata/xcschemes/*.xcscheme
 iosApp/Configuration/Local.xcconfig
+
+# Day 6 source SQL dumps
+ai_training/origin/*.sql
