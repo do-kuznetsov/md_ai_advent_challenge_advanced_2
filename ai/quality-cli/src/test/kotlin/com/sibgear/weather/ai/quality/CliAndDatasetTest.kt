@@ -5,6 +5,7 @@ import kotlin.math.abs
 import kotlin.io.path.writeText
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -38,6 +39,51 @@ internal class CliAndDatasetTest {
         assertEquals(0.435, config.largeInputPricePerMillion)
         assertEquals(0.87, config.largeOutputPricePerMillion)
         assertEquals("ai_training/day8/results/routing-report.json", config.output.toString())
+    }
+
+    @Test
+    fun `uses Day 9 monolithic defaults`() {
+        val config = requireNotNull(CliParser.parse(arrayOf("--mode", "monolithic")))
+
+        assertEquals(CliMode.MONOLITHIC, config.mode)
+        assertEquals(emptySet(), config.checks)
+        assertEquals(1, config.maxAttempts)
+        assertEquals(0.0, config.confidenceThreshold)
+        assertEquals("ai_training/day9/results/monolithic-report.json", config.output.toString())
+    }
+
+    @Test
+    fun `uses Day 9 multi stage defaults`() {
+        val config = requireNotNull(CliParser.parse(arrayOf("--mode", "multi-stage")))
+
+        assertEquals(CliMode.MULTI_STAGE, config.mode)
+        assertEquals(emptySet(), config.checks)
+        assertEquals(1, config.maxAttempts)
+        assertEquals("ai_training/day9/results/multi-stage-report.json", config.output.toString())
+    }
+
+    @Test
+    fun `rejects Day 9 QA and routing options`() {
+        assertFailsWith<IllegalArgumentException> {
+            CliParser.parse(
+                arrayOf(
+                    "--mode",
+                    "multi-stage",
+                    "--max-attempts",
+                    "2",
+                ),
+            )
+        }
+        assertFailsWith<IllegalArgumentException> {
+            CliParser.parse(
+                arrayOf(
+                    "--mode",
+                    "monolithic",
+                    "--small-model",
+                    "deepseek-v4-pro",
+                ),
+            )
+        }
     }
 
     @Test

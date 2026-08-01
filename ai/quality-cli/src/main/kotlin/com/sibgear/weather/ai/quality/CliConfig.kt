@@ -24,6 +24,7 @@ internal data class CliConfig(
     val keysFile: Path,
 )
 
+@Suppress("TooManyFunctions")
 internal object CliParser {
 
     private const val DEFAULT_DATASET = "ai_training/dataset/eval.jsonl"

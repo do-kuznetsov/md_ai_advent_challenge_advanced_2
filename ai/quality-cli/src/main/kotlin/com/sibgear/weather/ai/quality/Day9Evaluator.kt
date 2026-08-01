@@ -21,6 +21,7 @@ internal class MonolithicEvaluator(
             cases.forEach { evaluationCase -> add(evaluateCase(evaluationCase)) }
         }
 
+    @Suppress("ReturnCount")
     private suspend fun evaluateCase(evaluationCase: EvaluationCase): Day9CaseReport {
         val gatewayResult = gateway.complete(monolithicMessages(evaluationCase))
         if (gatewayResult is GatewayResult.Failure) {
@@ -96,10 +97,16 @@ internal class MultiStageEvaluator(
     private suspend fun evaluateCase(evaluationCase: EvaluationCase): Day9CaseReport {
         val stages = mutableListOf<StageReport>()
         val normalization = requestNormalization(evaluationCase).also(stages::add)
+        if (!normalization.succeeded) {
+            return rejected(evaluationCase, stages)
+        }
         val normalized = normalization.normalization
             ?: return rejected(evaluationCase, stages)
 
-        val decision = requestDecision(evaluationCase, normalized).also(stages::add)
+        val decision = requestDecision(normalized).also(stages::add)
+        if (!decision.succeeded) {
+            return rejected(evaluationCase, stages)
+        }
         val riskDecision = decision.decision
             ?: return rejected(evaluationCase, stages)
 
@@ -113,6 +120,7 @@ internal class MultiStageEvaluator(
         }
     }
 
+    @Suppress("ReturnCount")
     private suspend fun requestNormalization(evaluationCase: EvaluationCase): StageReport {
         val gatewayResult = gateway.complete(normalizationMessages(evaluationCase))
         if (gatewayResult is GatewayResult.Failure) {
@@ -144,11 +152,9 @@ internal class MultiStageEvaluator(
         )
     }
 
-    private suspend fun requestDecision(
-        evaluationCase: EvaluationCase,
-        normalization: NormalizationResult,
-    ): StageReport {
-        val gatewayResult = gateway.complete(decisionMessages(evaluationCase, normalization))
+    @Suppress("ReturnCount")
+    private suspend fun requestDecision(normalization: NormalizationResult): StageReport {
+        val gatewayResult = gateway.complete(decisionMessages(normalization))
         if (gatewayResult is GatewayResult.Failure) {
             return StageReport(
                 stage = InferenceStage.DECISION,
@@ -178,6 +184,7 @@ internal class MultiStageEvaluator(
         )
     }
 
+    @Suppress("ReturnCount")
     private suspend fun requestRendering(
         evaluationCase: EvaluationCase,
         normalization: NormalizationResult,
@@ -225,10 +232,7 @@ internal class MultiStageEvaluator(
         ChatMessage(role = "user", content = json.encodeToString(evaluationCase.input)),
     )
 
-    private fun decisionMessages(
-        evaluationCase: EvaluationCase,
-        normalization: NormalizationResult,
-    ): List<ChatMessage> = listOf(
+    private fun decisionMessages(normalization: NormalizationResult): List<ChatMessage> = listOf(
         ChatMessage(
             role = "system",
             content = """
@@ -311,11 +315,16 @@ internal object Day9Constraints {
         additives.maxByOrNull { additive -> riskOrder.getValue(additive.riskLevel) }?.riskLevel ?: RiskLevel.LOW
 
     private val riskOrder = mapOf(
-        RiskLevel.LOW to 0,
-        RiskLevel.UNKNOWN to 1,
-        RiskLevel.MEDIUM to 2,
-        RiskLevel.HIGH to 3,
+        RiskLevel.LOW to LOW_RISK_ORDER,
+        RiskLevel.UNKNOWN to UNKNOWN_RISK_ORDER,
+        RiskLevel.MEDIUM to MEDIUM_RISK_ORDER,
+        RiskLevel.HIGH to HIGH_RISK_ORDER,
     )
+
+    private const val LOW_RISK_ORDER = 0
+    private const val UNKNOWN_RISK_ORDER = 1
+    private const val MEDIUM_RISK_ORDER = 2
+    private const val HIGH_RISK_ORDER = 3
 }
 
 private fun callStats(response: RemoteResponse, config: CliConfig): CallStats =
