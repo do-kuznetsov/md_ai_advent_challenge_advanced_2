@@ -56,3 +56,19 @@ Routing выполняет задачу: 24 простых кейса остал
 Самый важный результат: score не годится единственной эвристикой. Большинство ошибок Flash пришли с `0.90–0.95`, но constraints обнаружили лишние или пропущенные additives. Два кейса с корректной структурой получили routing только из-за score `0.70`; это цена выбранного conservative threshold.
 
 Пять rejected кейсов полезны: router не принял формально уверенные ответы с неполной или неверной reference-мэппингом. Следующая итерация может добавить repair prompt для Pro или отдельный deterministic mapper для `E1400` и alias `E472`/`E472a`; текущий прогон намеренно не делал третьего model call.
+
+## Сравнение с Днём 7
+
+| Метрика | Day 7 constraints | Day 7 scoring | Day 7 self-check | Day 8 routing |
+|---|---:|---:|---:|---:|
+| Accepted | 35 / 37 | 37 / 37 | 37 / 37 | 32 / 37 |
+| API calls | 47 | 42 | 75 | 50 |
+| Latency / case | 4.98 s | 4.38 s | 5.32 s | 6.78 s |
+| Cost | $0.01062 | $0.00964 | $0.01455 | $0.02007 |
+| Final rejects | 2 | 0 | 0 | 5 |
+
+Day 8 — более строгий production-gate. Он не принимает сомнительные ответы Flash и восстановил через Pro 8 из 13 эскалаций. Цена: routing дороже constraints на 89% и self-check на 38%, а latency выше.
+
+Day 7 scoring и self-check приняли все кейсы, но каждый пропустил 5 semantic mismatches. Поэтому score и self-check не заменяют constraints. В Day 8 большинство ошибок Flash имели score `0.90–0.95`; router эскалировал их именно по deterministic constraints.
+
+Сопоставление semantic correctness ограничено: Day 7 приводит совпадения среди accepted ответов отдельного метода, Day 8 — среди final candidates всех 37 кейсов. Для строгого model benchmark нужен отдельный парный прогон с сохранением кандидатов Flash и Pro для каждого кейса.
