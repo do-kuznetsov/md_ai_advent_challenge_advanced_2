@@ -153,6 +153,7 @@ python3 ai_training/validate_product_safety_dataset.py \
 Day 10:
 
 - [day10-micro-model.md](day10-micro-model.md);
+- [day10-run-report.md](day10-run-report.md);
 - [day10/supplemental.jsonl](day10/supplemental.jsonl).
 
 ## Baseline

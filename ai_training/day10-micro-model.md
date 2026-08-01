@@ -2,31 +2,35 @@
 
 ## Цель
 
-Day 10 отличается от Day 8. Day 8 маршрутизирует Cloud LLM `Flash` в Cloud LLM `Pro`.
-Здесь micro-model — локальный embedding classifier; большая генеративная модель вызывается
-только для неуверенных случаев.
+Day 10 отличается от Day 8. Day 8 маршрутизирует Cloud LLM `Flash` в Cloud LLM
+`Pro`. Здесь micro-model — локальный embedding classifier; большая генеративная
+модель вызывается только для неуверенных случаев.
 
-Классифицируем только `risk_level`: `low`, `medium`, `high` или `unknown`. Полный Day 6 JSON
-не строится: extraction, warnings и summary намеренно вне scope этого эксперимента.
+Классифицируем только `risk_level`: `low`, `medium`, `high` или `unknown`.
+Полный Day 6 JSON не строится: extraction, warnings и summary намеренно вне scope
+этого эксперимента.
 
 ## Pipeline
 
 1. `nomic-embed-text` в локальном Ollama получает batch из 64 `train.jsonl` входов.
-   В embedding text входят название, состав, code/matched text/canonical name справочника, но не
-   переданный `risk_level`: classifier не получает target label во входе.
+   В embedding text входят название, состав и code/matched text/canonical name
+   справочника, но не переданный `risk_level`: classifier не получает target label.
 2. Индекс хранит embedding и эталонный `risk_level` только в памяти процесса.
-3. Для каждого запроса выбирается nearest neighbor по cosine similarity. Micro-result содержит
-   label, similarity score, margin до ближайшего другого класса и статус `OK` / `UNSURE`.
-4. Пороги similarity и margin выбираются leave-one-out калибровкой только по train; принимается
-   самый широкий gate с точностью не ниже 95%.
-5. `OK` требует также совпадения embedding label с deterministic aggregate `risk_level` из
-   переданного справочника. Это constraint: справочник — source of truth Day 6, а не скрытый
-   target label; несовпадение остаётся `UNSURE`.
+3. Для каждого запроса выбирается nearest neighbor по cosine similarity.
+   Micro-result содержит label, similarity score, margin до ближайшего другого класса
+   и статус `OK` / `UNSURE`.
+4. Similarity threshold выбирается leave-one-out калибровкой compound gate только
+   по train: nearest-neighbor label должен совпасть с aggregate справочника и иметь
+   точность не ниже 95%. Margin сохраняется в report как диагностика, но не является
+   вторым runtime acceptance gate.
+5. `OK` требует также совпадения embedding label с deterministic aggregate
+   `risk_level` из переданного справочника. Это constraint: справочник — source of
+   truth Day 6, а не скрытый target label; несовпадение остаётся `UNSURE`.
 6. `UNSURE` или ошибка embedding-запроса один раз передаются в `deepseek-v4-pro`.
    Fallback обязан вернуть только `{"risk_level":"..."}`. Невалидный fallback — final reject.
 
-Fine-tuning и `ollama create` не используются: Day 6 train — label index, не набор для обучения
-весов.
+Fine-tuning и `ollama create` не используются: Day 6 train — label index, не набор
+для обучения весов.
 
 ## Набор
 
@@ -62,8 +66,8 @@ ollama list
   --output ai_training/day10/results/micro-routing-report.json'
 ```
 
-Команда передаёт в DeepSeek только cases с `UNSURE` или ошибкой Ollama, расходует API balance и
-создаёт ignored локальный report.
+Команда передаёт в DeepSeek только cases с `UNSURE` или ошибкой Ollama, расходует
+API balance и создаёт ignored локальный report.
 
 ## Метрики и успех
 
@@ -74,5 +78,5 @@ JSON report содержит:
 - точность принятых micro-model ответов и финальную точность;
 - thresholds, leave-one-out accuracy и reason каждого fallback.
 
-Success criterion: micro-model принимает больше половины 30 cases и сохраняет не менее 95%
-точности `risk_level` среди принятых ответов.
+Success criterion: micro-model принимает больше половины 30 cases и сохраняет не
+менее 95% точности `risk_level` среди принятых ответов.

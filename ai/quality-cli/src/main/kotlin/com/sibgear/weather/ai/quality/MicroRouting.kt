@@ -42,6 +42,7 @@ internal data class MicroRoutingIndex(
 internal data class EmbeddedRiskExample(
     val riskLevel: RiskLevel,
     val vector: List<Double>,
+    val referenceRiskLevel: RiskLevel = riskLevel,
 )
 
 internal object MicroRoutingIndexBuilder {
@@ -58,7 +59,11 @@ internal object MicroRoutingIndexBuilder {
         }
         response as EmbeddingResult.Success
         val examples = trainingCases.zip(response.vectors) { case, vector ->
-            EmbeddedRiskExample(riskLevel = case.expectedRiskLevel, vector = vector)
+            EmbeddedRiskExample(
+                riskLevel = case.expectedRiskLevel,
+                referenceRiskLevel = ReferenceRiskResolver.resolve(case.input),
+                vector = vector,
+            )
         }
         return runCatching {
             require(examples.size >= 2) { "Micro-model requires at least two training examples." }
@@ -79,30 +84,31 @@ internal object MicroCalibrationSelector {
 
         val candidates = buildList {
             similarityThresholds.forEach { similarityThreshold ->
-                marginThresholds.forEach { marginThreshold ->
-                    val predictions = examples.indices.map { index ->
-                        MicroNearestNeighbor.predict(
-                            query = examples[index].vector,
-                            examples = examples.filterIndexed { candidateIndex, _ -> candidateIndex != index },
+                val predictions = examples.indices.map { index ->
+                    MicroNearestNeighbor.predict(
+                        query = examples[index].vector,
+                        examples = examples.filterIndexed { candidateIndex, _ -> candidateIndex != index },
+                        similarityThreshold = similarityThreshold,
+                        marginThreshold = MIN_MARGIN_THRESHOLD,
+                    )
+                }
+                val acceptedIndices = predictions.indices.filter { index ->
+                    predictions[index].status == DecisionStatus.OK &&
+                        predictions[index].riskLevel == examples[index].referenceRiskLevel
+                }
+                val accepted = acceptedIndices.size
+                val accuracy = acceptedIndices.count { index ->
+                    predictions[index].riskLevel == examples[index].riskLevel
+                }.toDouble() / accepted.coerceAtLeast(1)
+                if (accepted > 0 && accuracy >= accuracyTarget) {
+                    add(
+                        CalibrationCandidate(
                             similarityThreshold = similarityThreshold,
-                            marginThreshold = marginThreshold,
-                        )
-                    }
-                    val acceptedIndices = predictions.indices.filter { predictions[it].status == DecisionStatus.OK }
-                    val accepted = acceptedIndices.size
-                    val accuracy = acceptedIndices.count { index ->
-                        predictions[index].riskLevel == examples[index].riskLevel
-                    }.toDouble() / accepted.coerceAtLeast(1)
-                    if (accepted > 0 && accuracy >= accuracyTarget) {
-                        add(
-                            CalibrationCandidate(
-                                similarityThreshold = similarityThreshold,
-                                marginThreshold = marginThreshold,
-                                accepted = accepted,
-                                accuracy = accuracy,
-                            ),
-                        )
-                    }
+                            marginThreshold = MIN_MARGIN_THRESHOLD,
+                            accepted = accepted,
+                            accuracy = accuracy,
+                        ),
+                    )
                 }
             }
         }
@@ -139,15 +145,11 @@ internal object MicroCalibrationSelector {
     private val similarityThresholds: List<Double> =
         (MIN_SIMILARITY_PERCENT..MAX_SIMILARITY_PERCENT step SIMILARITY_STEP_PERCENT)
             .map { it / PERCENT }
-    private val marginThresholds: List<Double> =
-        (MIN_MARGIN_PERCENT..MAX_MARGIN_PERCENT step MARGIN_STEP_PERCENT).map { it / PERCENT }
 
     private const val MIN_SIMILARITY_PERCENT = 50
     private const val MAX_SIMILARITY_PERCENT = 95
     private const val SIMILARITY_STEP_PERCENT = 5
-    private const val MIN_MARGIN_PERCENT = 0
-    private const val MAX_MARGIN_PERCENT = 20
-    private const val MARGIN_STEP_PERCENT = 2
+    private const val MIN_MARGIN_THRESHOLD = 0.0
     private const val PERCENT = 100.0
 }
 
