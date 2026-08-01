@@ -139,6 +139,7 @@ internal object Day9ReportFactory {
 
             CliMode.QUALITY,
             CliMode.ROUTING,
+            CliMode.MICRO_ROUTING,
             -> error("Day 9 report is not supported for ${mode.name}.")
         }
 }

@@ -22,6 +22,11 @@ internal data class CliConfig(
     val largeOutputPricePerMillion: Double,
     val output: Path,
     val keysFile: Path,
+    val trainDataset: Path = Path("ai_training/dataset/train.jsonl"),
+    val supplementalDataset: Path = Path("ai_training/day10/supplemental.jsonl"),
+    val embeddingModel: String = "nomic-embed-text",
+    val ollamaBaseUrl: String = "http://127.0.0.1:11434",
+    val microAccuracyTarget: Double = 0.95,
 )
 
 @Suppress("TooManyFunctions")
@@ -32,6 +37,7 @@ internal object CliParser {
     private const val DAY_8_DEFAULT_OUTPUT = "ai_training/day8/results/routing-report.json"
     private const val DAY_9_MONOLITHIC_DEFAULT_OUTPUT = "ai_training/day9/results/monolithic-report.json"
     private const val DAY_9_MULTI_STAGE_DEFAULT_OUTPUT = "ai_training/day9/results/multi-stage-report.json"
+    private const val DAY_10_DEFAULT_OUTPUT = "ai_training/day10/results/micro-routing-report.json"
 
     @Suppress("CyclomaticComplexMethod")
     fun parse(args: Array<String>): CliConfig? {
@@ -102,6 +108,13 @@ internal object CliParser {
             ),
             output = Path(options["--output"] ?: defaultOutput(mode)),
             keysFile = Path(options["--keys-file"] ?: ".keys.txt"),
+            trainDataset = Path(options["--train-dataset"] ?: "ai_training/dataset/train.jsonl"),
+            supplementalDataset = Path(options["--supplemental-dataset"] ?: "ai_training/day10/supplemental.jsonl"),
+            embeddingModel = options["--embedding-model"] ?: "nomic-embed-text",
+            ollamaBaseUrl = options["--ollama-base-url"] ?: "http://127.0.0.1:11434",
+            microAccuracyTarget = (options["--micro-accuracy-target"] ?: "0.95").toDouble().also {
+                require(it in 0.0..1.0) { "--micro-accuracy-target must be in 0..1." }
+            },
         )
 
     private fun parseMode(value: String): CliMode =
@@ -110,6 +123,7 @@ internal object CliParser {
             "routing" -> CliMode.ROUTING
             "monolithic" -> CliMode.MONOLITHIC
             "multi-stage" -> CliMode.MULTI_STAGE
+            "micro-routing" -> CliMode.MICRO_ROUTING
             else -> error("Unknown mode: $value")
         }
 
@@ -120,6 +134,8 @@ internal object CliParser {
             CliMode.MONOLITHIC,
             CliMode.MULTI_STAGE,
             -> emptySet()
+
+            CliMode.MICRO_ROUTING -> emptySet()
         }
 
     private fun validateModeOptions(mode: CliMode, options: Map<String, String>) {
@@ -144,7 +160,9 @@ internal object CliParser {
                 }
             }
 
-            CliMode.QUALITY -> Unit
+            CliMode.QUALITY,
+            CliMode.MICRO_ROUTING,
+            -> Unit
         }
     }
 
@@ -172,6 +190,7 @@ internal object CliParser {
             CliMode.ROUTING -> DAY_8_DEFAULT_OUTPUT
             CliMode.MONOLITHIC -> DAY_9_MONOLITHIC_DEFAULT_OUTPUT
             CliMode.MULTI_STAGE -> DAY_9_MULTI_STAGE_DEFAULT_OUTPUT
+            CliMode.MICRO_ROUTING -> DAY_10_DEFAULT_OUTPUT
         }
 
     private fun price(options: Map<String, String>, name: String, defaultValue: Double): Double =
@@ -203,7 +222,7 @@ internal object CliParser {
         println(
             """
             Usage: ./gradlew :ai:quality-cli:run --args='[options]'
-              --mode quality|routing|monolithic|multi-stage
+              --mode quality|routing|monolithic|multi-stage|micro-routing
               --dataset <path>
               --checks self-check,constraints,scoring
               --scenarios clean,boundary,noisy
@@ -221,6 +240,11 @@ internal object CliParser {
               --large-output-price-per-million 0.87
               --output <report.json>
               --keys-file .keys.txt
+              --train-dataset ai_training/dataset/train.jsonl
+              --supplemental-dataset ai_training/day10/supplemental.jsonl
+              --embedding-model nomic-embed-text
+              --ollama-base-url http://127.0.0.1:11434
+              --micro-accuracy-target 0.95
             """.trimIndent(),
         )
     }
