@@ -63,6 +63,20 @@ internal class CliAndDatasetTest {
     }
 
     @Test
+    fun `uses Day 10 micro routing defaults`() {
+        val config = requireNotNull(CliParser.parse(arrayOf("--mode", "micro-routing")))
+
+        assertEquals(CliMode.MICRO_ROUTING, config.mode)
+        assertEquals(emptySet(), config.checks)
+        assertEquals("ai_training/dataset/train.jsonl", config.trainDataset.toString())
+        assertEquals("ai_training/day10/supplemental.jsonl", config.supplementalDataset.toString())
+        assertEquals("nomic-embed-text", config.embeddingModel)
+        assertEquals("deepseek-v4-pro", config.largeModel)
+        assertEquals(0.95, config.microAccuracyTarget)
+        assertEquals("ai_training/day10/results/micro-routing-report.json", config.output.toString())
+    }
+
+    @Test
     fun `rejects Day 9 QA and routing options`() {
         assertFailsWith<IllegalArgumentException> {
             CliParser.parse(

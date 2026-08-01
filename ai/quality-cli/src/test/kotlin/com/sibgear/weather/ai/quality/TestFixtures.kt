@@ -49,6 +49,14 @@ internal object TestFixtures {
             expected = expected,
         )
 
+    fun microCase(): MicroRoutingCase =
+        MicroRoutingCase(
+            caseId = "micro-1",
+            scenario = MicroScenario.SIMPLE,
+            input = input,
+            expectedRiskLevel = RiskLevel.MEDIUM,
+        )
+
     fun gatewayResult(content: String, promptTokens: Int = 10, completionTokens: Int = 5): GatewayResult.Success =
         GatewayResult.Success(
             RemoteResponse(

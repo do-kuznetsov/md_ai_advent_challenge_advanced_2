@@ -12,6 +12,18 @@ internal val qualityJson: Json = Json {
 
 fun main(args: Array<String>): Unit = runBlocking {
     val config = CliParser.parse(args) ?: return@runBlocking
+    when (config.mode) {
+        CliMode.MICRO_ROUTING -> runMicroRoutingMode(config)
+
+        CliMode.QUALITY,
+        CliMode.ROUTING,
+        CliMode.MONOLITHIC,
+        CliMode.MULTI_STAGE,
+        -> runExistingMode(config)
+    }
+}
+
+private suspend fun runExistingMode(config: CliConfig) {
     val apiKey = requireNotNull(ApiKeyLoader.load(config.keysFile)) {
         "DEEPSEEK_API_KEY or deepseek_api_key in ${config.keysFile} is required."
     }
@@ -27,6 +39,8 @@ fun main(args: Array<String>): Unit = runBlocking {
         CliMode.MONOLITHIC,
         CliMode.MULTI_STAGE,
         -> runDay9Mode(config, apiKey, cases)
+
+        CliMode.MICRO_ROUTING -> error("micro-routing must use its dedicated runner.")
     }
 }
 
@@ -68,6 +82,50 @@ private suspend fun runRoutingMode(
     }
 }
 
+private suspend fun runMicroRoutingMode(config: CliConfig) {
+    val apiKey = requireNotNull(ApiKeyLoader.load(config.keysFile)) {
+        "DEEPSEEK_API_KEY or deepseek_api_key in ${config.keysFile} is required."
+    }
+    val loader = MicroRoutingDatasetLoader(qualityJson)
+    val trainingCases = loader.loadTraining(config.trainDataset)
+    val evaluationCases = loader.loadEvaluation(
+        path = config.dataset,
+        supplementalPath = config.supplementalDataset,
+        limit = config.limit,
+    )
+    require(trainingCases.size == DAY_10_TRAIN_CASES) { "Day 10 expects 64 Day 6 training cases." }
+    require(evaluationCases.size == DAY_10_EVALUATION_CASES || config.limit != null) {
+        "Day 10 expects 30 evaluation cases: 16 Day 6 eval and 14 supplemental cases."
+    }
+
+    OllamaEmbeddingClient.create(config.ollamaBaseUrl, config.embeddingModel).use { embeddingClient ->
+        val index = MicroRoutingIndexBuilder.build(
+            trainingCases = trainingCases,
+            embeddingGateway = embeddingClient,
+            accuracyTarget = config.microAccuracyTarget,
+        ).getOrThrow()
+        DeepSeekClient.create(apiKey = apiKey, model = config.largeModel, json = qualityJson).use { fallbackClient ->
+            val results = MicroRoutingEvaluator(
+                index = index,
+                embeddingGateway = embeddingClient,
+                fallbackGateway = fallbackClient,
+                config = config,
+                json = qualityJson,
+            ).evaluate(evaluationCases)
+            val report = MicroRoutingReportFactory.create(config, index, results)
+            MicroRoutingReportWriter(qualityJson).write(report, config.output)
+            println(
+                "micro_accepted=${report.overall.microAccepted} fallback_calls=${report.overall.fallbackCalls} " +
+                    "large_model_calls=${report.overall.largeModelCalls} " +
+                    "average_latency_ms=${report.overall.averageEndToEndLatencyMillis} output=${config.output}",
+            )
+        }
+    }
+}
+
+private const val DAY_10_TRAIN_CASES = 64
+private const val DAY_10_EVALUATION_CASES = 30
+
 private suspend fun runDay9Mode(
     config: CliConfig,
     apiKey: String,
@@ -79,6 +137,7 @@ private suspend fun runDay9Mode(
             CliMode.MULTI_STAGE -> MultiStageEvaluator(config = config, gateway = client, json = qualityJson)
             CliMode.QUALITY,
             CliMode.ROUTING,
+            CliMode.MICRO_ROUTING,
             -> error("Day 9 evaluator is not supported for ${config.mode.name}.")
         }
         val results = evaluator.evaluate(cases)

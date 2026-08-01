@@ -150,6 +150,11 @@ python3 ai_training/validate_product_safety_dataset.py \
 - [run_product_safety_baseline.py](run_product_safety_baseline.py).
 - [run_product_safety_fine_tune.py](run_product_safety_fine_tune.py).
 
+Day 10:
+
+- [day10-micro-model.md](day10-micro-model.md);
+- [day10/supplemental.jsonl](day10/supplemental.jsonl).
+
 ## Baseline
 
 Нужно взять 10 примеров из `ai_training/dataset/eval.jsonl`, прогнать через базовую модель `openai/gpt-4o-mini` через OpenRouter без fine-tune и сохранить ответы как точку отсчета.

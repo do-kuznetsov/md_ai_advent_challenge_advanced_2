@@ -85,6 +85,9 @@ internal enum class CliMode {
 
     @SerialName("multi-stage")
     MULTI_STAGE,
+
+    @SerialName("micro-routing")
+    MICRO_ROUTING,
 }
 
 @Serializable

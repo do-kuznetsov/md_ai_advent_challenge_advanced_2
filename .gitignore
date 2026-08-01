@@ -52,3 +52,4 @@ ai_training/origin/*.sql
 ai_training/day7/results/*.json
 ai_training/day8/results/*.json
 ai_training/day9/results/*.json
+ai_training/day10/results/*.json
