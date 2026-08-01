@@ -14,30 +14,35 @@ internal object QualityConstraints {
         if (candidate.confidenceScore !in 0.0..1.0) {
             add("confidence_score must be in 0..1")
         }
-        if (candidate.answer.safeSummary.isBlank()) {
+        addAll(validate(candidate.answer, input))
+    }
+
+    @Suppress("CyclomaticComplexMethod", "LongMethod")
+    fun validate(candidate: ProductSafetyAssessment, input: ProductInput): List<String> = buildList {
+        if (candidate.safeSummary.isBlank()) {
             add("safe_summary must not be blank")
         }
 
-        val matched = candidate.answer.matchedAdditives
+        val matched = candidate.matchedAdditives
         if (matched.isEmpty()) {
-            if (candidate.answer.riskLevel !in setOf(RiskLevel.LOW, RiskLevel.UNKNOWN)) {
+            if (candidate.riskLevel !in setOf(RiskLevel.LOW, RiskLevel.UNKNOWN)) {
                 add("empty matched_additives cannot have risky risk_level")
             }
-            if (candidate.answer.warnings.isNotEmpty()) {
+            if (candidate.warnings.isNotEmpty()) {
                 add("empty matched_additives must have empty warnings")
             }
         }
-        if (matched.isNotEmpty() && candidate.answer.riskLevel != aggregateRisk(matched)) {
+        if (matched.isNotEmpty() && candidate.riskLevel != aggregateRisk(matched)) {
             add("risk_level must equal the maximum matched additive risk")
         }
         if (
             matched.isNotEmpty() &&
-            candidate.answer.riskLevel != RiskLevel.LOW &&
-            candidate.answer.warnings.isEmpty()
+            candidate.riskLevel != RiskLevel.LOW &&
+            candidate.warnings.isEmpty()
         ) {
             add("risky assessment must contain warnings")
         }
-        if (candidate.answer.warnings.any(String::isBlank)) {
+        if (candidate.warnings.any(String::isBlank)) {
             add("warnings must not contain blank items")
         }
 

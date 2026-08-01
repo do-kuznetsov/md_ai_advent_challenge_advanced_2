@@ -79,6 +79,28 @@ internal enum class CliMode {
 
     @SerialName("routing")
     ROUTING,
+
+    @SerialName("monolithic")
+    MONOLITHIC,
+
+    @SerialName("multi-stage")
+    MULTI_STAGE,
+}
+
+@Serializable
+internal enum class InferenceStage {
+
+    @SerialName("monolithic")
+    MONOLITHIC,
+
+    @SerialName("normalization")
+    NORMALIZATION,
+
+    @SerialName("decision")
+    DECISION,
+
+    @SerialName("rendering")
+    RENDERING,
 }
 
 @Serializable
@@ -169,6 +191,22 @@ internal data class AssessmentEnvelope(
     @SerialName("confidence_score")
     val confidenceScore: Double,
     val status: DecisionStatus,
+)
+
+@Serializable
+internal data class NormalizationResult(
+    @SerialName("product_name")
+    val productName: String? = null,
+    val additives: List<ReferenceAdditive>,
+)
+
+@Serializable
+internal data class RiskDecision(
+    @SerialName("selected_additive_keys")
+    val selectedAdditiveKeys: List<String>,
+    @SerialName("risk_level")
+    val riskLevel: RiskLevel,
+    val confidence: ModelConfidence,
 )
 
 @Serializable

@@ -24,11 +24,14 @@ internal data class CliConfig(
     val keysFile: Path,
 )
 
+@Suppress("TooManyFunctions")
 internal object CliParser {
 
     private const val DEFAULT_DATASET = "ai_training/dataset/eval.jsonl"
     private const val DAY_7_DEFAULT_OUTPUT = "ai_training/day7/results/quality-report.json"
     private const val DAY_8_DEFAULT_OUTPUT = "ai_training/day8/results/routing-report.json"
+    private const val DAY_9_MONOLITHIC_DEFAULT_OUTPUT = "ai_training/day9/results/monolithic-report.json"
+    private const val DAY_9_MULTI_STAGE_DEFAULT_OUTPUT = "ai_training/day9/results/multi-stage-report.json"
 
     @Suppress("CyclomaticComplexMethod")
     fun parse(args: Array<String>): CliConfig? {
@@ -42,20 +45,8 @@ internal object CliParser {
         require(options.size * 2 == args.size) { "Duplicate CLI option." }
 
         val mode = parseMode(options["--mode"] ?: "quality")
-        val defaultChecks = if (mode == CliMode.ROUTING) {
-            "constraints,scoring"
-        } else {
-            "self-check,constraints,scoring"
-        }
-        val checks = parseChecks(options["--checks"] ?: defaultChecks)
-        if (mode == CliMode.ROUTING) {
-            require(checks == ROUTING_CHECKS) {
-                "--mode routing requires --checks constraints,scoring."
-            }
-            require("--max-attempts" !in options) {
-                "--max-attempts is not supported in --mode routing; routing makes at most two calls."
-            }
-        }
+        validateModeOptions(mode, options)
+        val checks = checks(mode, options)
 
         return createConfig(
             options = options,
@@ -78,12 +69,8 @@ internal object CliParser {
             model = options["--model"] ?: "deepseek-v4-flash",
             smallModel = options["--small-model"] ?: "deepseek-v4-flash",
             largeModel = options["--large-model"] ?: "deepseek-v4-pro",
-            confidenceThreshold = (options["--confidence-threshold"] ?: "0.75").toDouble().also {
-                require(it in 0.0..1.0) { "--confidence-threshold must be in 0..1." }
-            },
-            maxAttempts = (options["--max-attempts"] ?: "2").toInt().also {
-                require(it > 0) { "--max-attempts must be positive." }
-            },
+            confidenceThreshold = confidenceThreshold(mode, options),
+            maxAttempts = maxAttempts(mode, options),
             limit = options["--limit"]?.toInt()?.also {
                 require(it > 0) { "--limit must be positive." }
             },
@@ -113,13 +100,7 @@ internal object CliParser {
                 "--large-output-price-per-million",
                 DEFAULT_LARGE_OUTPUT_PRICE,
             ),
-            output = Path(
-                options["--output"] ?: if (mode == CliMode.ROUTING) {
-                    DAY_8_DEFAULT_OUTPUT
-                } else {
-                    DAY_7_DEFAULT_OUTPUT
-                },
-            ),
+            output = Path(options["--output"] ?: defaultOutput(mode)),
             keysFile = Path(options["--keys-file"] ?: ".keys.txt"),
         )
 
@@ -127,7 +108,70 @@ internal object CliParser {
         when (value) {
             "quality" -> CliMode.QUALITY
             "routing" -> CliMode.ROUTING
+            "monolithic" -> CliMode.MONOLITHIC
+            "multi-stage" -> CliMode.MULTI_STAGE
             else -> error("Unknown mode: $value")
+        }
+
+    private fun checks(mode: CliMode, options: Map<String, String>): Set<CheckType> =
+        when (mode) {
+            CliMode.QUALITY -> parseChecks(options["--checks"] ?: "self-check,constraints,scoring")
+            CliMode.ROUTING -> parseChecks(options["--checks"] ?: "constraints,scoring")
+            CliMode.MONOLITHIC,
+            CliMode.MULTI_STAGE,
+            -> emptySet()
+        }
+
+    private fun validateModeOptions(mode: CliMode, options: Map<String, String>) {
+        when (mode) {
+            CliMode.ROUTING -> {
+                val checks = checks(mode, options)
+                require(checks == ROUTING_CHECKS) {
+                    "--mode routing requires --checks constraints,scoring."
+                }
+                require("--max-attempts" !in options) {
+                    "--max-attempts is not supported in --mode routing; routing makes at most two calls."
+                }
+            }
+
+            CliMode.MONOLITHIC,
+            CliMode.MULTI_STAGE,
+            -> {
+                val unsupported = options.keys.intersect(DAY_9_UNSUPPORTED_OPTIONS)
+                require(unsupported.isEmpty()) {
+                    "--mode ${mode.name.lowercase().replace('_', '-')} does not support " +
+                        unsupported.sorted().joinToString(separator = ", ") + "."
+                }
+            }
+
+            CliMode.QUALITY -> Unit
+        }
+    }
+
+    private fun confidenceThreshold(mode: CliMode, options: Map<String, String>): Double =
+        if (mode.isDay9()) {
+            0.0
+        } else {
+            (options["--confidence-threshold"] ?: "0.75").toDouble().also {
+                require(it in 0.0..1.0) { "--confidence-threshold must be in 0..1." }
+            }
+        }
+
+    private fun maxAttempts(mode: CliMode, options: Map<String, String>): Int =
+        if (mode.isDay9()) {
+            1
+        } else {
+            (options["--max-attempts"] ?: "2").toInt().also {
+                require(it > 0) { "--max-attempts must be positive." }
+            }
+        }
+
+    private fun defaultOutput(mode: CliMode): String =
+        when (mode) {
+            CliMode.QUALITY -> DAY_7_DEFAULT_OUTPUT
+            CliMode.ROUTING -> DAY_8_DEFAULT_OUTPUT
+            CliMode.MONOLITHIC -> DAY_9_MONOLITHIC_DEFAULT_OUTPUT
+            CliMode.MULTI_STAGE -> DAY_9_MULTI_STAGE_DEFAULT_OUTPUT
         }
 
     private fun price(options: Map<String, String>, name: String, defaultValue: Double): Double =
@@ -159,7 +203,7 @@ internal object CliParser {
         println(
             """
             Usage: ./gradlew :ai:quality-cli:run --args='[options]'
-              --mode quality|routing
+              --mode quality|routing|monolithic|multi-stage
               --dataset <path>
               --checks self-check,constraints,scoring
               --scenarios clean,boundary,noisy
@@ -187,4 +231,18 @@ internal object CliParser {
     private const val DEFAULT_LARGE_OUTPUT_PRICE = 0.87
 
     private val ROUTING_CHECKS: Set<CheckType> = setOf(CheckType.CONSTRAINTS, CheckType.SCORING)
+
+    private val DAY_9_UNSUPPORTED_OPTIONS: Set<String> = setOf(
+        "--checks",
+        "--max-attempts",
+        "--confidence-threshold",
+        "--small-model",
+        "--large-model",
+        "--small-input-price-per-million",
+        "--small-output-price-per-million",
+        "--large-input-price-per-million",
+        "--large-output-price-per-million",
+    )
+
+    private fun CliMode.isDay9(): Boolean = this == CliMode.MONOLITHIC || this == CliMode.MULTI_STAGE
 }
