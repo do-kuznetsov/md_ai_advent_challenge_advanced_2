@@ -15,6 +15,7 @@ internal class CliAndDatasetTest {
     fun `uses documented CLI defaults`() {
         val config = requireNotNull(CliParser.parse(emptyArray()))
 
+        assertEquals(CliMode.QUALITY, config.mode)
         assertEquals("ai_training/dataset/eval.jsonl", config.dataset.toString())
         assertEquals(setOf(CheckType.SELF_CHECK, CheckType.CONSTRAINTS, CheckType.SCORING), config.checks)
         assertEquals(setOf(Scenario.CLEAN, Scenario.BOUNDARY, Scenario.NOISY), config.scenarios)
@@ -22,6 +23,21 @@ internal class CliAndDatasetTest {
         assertEquals(0.75, config.confidenceThreshold)
         assertEquals(2, config.maxAttempts)
         assertEquals(null, config.limit)
+    }
+
+    @Test
+    fun `uses routing defaults without changing quality defaults`() {
+        val config = requireNotNull(CliParser.parse(arrayOf("--mode", "routing")))
+
+        assertEquals(CliMode.ROUTING, config.mode)
+        assertEquals(setOf(CheckType.CONSTRAINTS, CheckType.SCORING), config.checks)
+        assertEquals("deepseek-v4-flash", config.smallModel)
+        assertEquals("deepseek-v4-pro", config.largeModel)
+        assertEquals(0.14, config.smallInputPricePerMillion)
+        assertEquals(0.28, config.smallOutputPricePerMillion)
+        assertEquals(0.435, config.largeInputPricePerMillion)
+        assertEquals(0.87, config.largeOutputPricePerMillion)
+        assertEquals("ai_training/day8/results/routing-report.json", config.output.toString())
     }
 
     @Test

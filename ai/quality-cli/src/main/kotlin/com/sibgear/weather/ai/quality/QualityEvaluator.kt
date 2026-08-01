@@ -17,6 +17,9 @@ internal data class AttemptReport(
     val index: Int,
     val primary: CallStats? = null,
     val selfCheck: CallStats? = null,
+    val model: String? = null,
+    val modelRole: ModelRole? = null,
+    val routingDecision: RoutingDecision? = null,
     val candidate: AssessmentEnvelope? = null,
     val selfCheckResult: SelfCheckResult? = null,
     val reasons: List<String>,
@@ -33,6 +36,7 @@ internal data class CaseReport(
     val finalCandidate: AssessmentEnvelope? = null,
     val reasons: List<String>,
     val attempts: List<AttemptReport>,
+    val routingDecision: RoutingDecision? = null,
     val riskLevelMatchesExpected: Boolean? = null,
     val additiveCodesMatchExpected: Boolean? = null,
 )

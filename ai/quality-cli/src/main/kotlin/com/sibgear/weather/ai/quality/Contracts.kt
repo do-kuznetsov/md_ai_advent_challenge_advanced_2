@@ -72,6 +72,42 @@ internal enum class Scenario {
 }
 
 @Serializable
+internal enum class CliMode {
+
+    @SerialName("quality")
+    QUALITY,
+
+    @SerialName("routing")
+    ROUTING,
+}
+
+@Serializable
+internal enum class ModelRole {
+
+    @SerialName("small")
+    SMALL,
+
+    @SerialName("large")
+    LARGE,
+}
+
+@Serializable
+internal enum class RoutingDecision {
+
+    @SerialName("accepted_on_small")
+    ACCEPTED_ON_SMALL,
+
+    @SerialName("escalated_to_large")
+    ESCALATED_TO_LARGE,
+
+    @SerialName("accepted_on_large")
+    ACCEPTED_ON_LARGE,
+
+    @SerialName("rejected")
+    REJECTED,
+}
+
+@Serializable
 internal data class ChatMessage(
     val role: String,
     val content: String,

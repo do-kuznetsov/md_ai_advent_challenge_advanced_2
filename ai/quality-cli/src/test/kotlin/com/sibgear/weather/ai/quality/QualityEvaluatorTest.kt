@@ -67,15 +67,22 @@ internal class QualityEvaluatorTest {
     private fun evaluator(gateway: DeepSeekGateway): QualityEvaluator =
         QualityEvaluator(
             config = CliConfig(
+                mode = CliMode.QUALITY,
                 dataset = java.nio.file.Path.of("fixture.jsonl"),
                 checks = setOf(CheckType.SELF_CHECK, CheckType.CONSTRAINTS, CheckType.SCORING),
                 scenarios = setOf(Scenario.CLEAN),
                 model = "test-model",
+                smallModel = "small-model",
+                largeModel = "large-model",
                 confidenceThreshold = 0.75,
                 maxAttempts = 2,
                 limit = null,
                 inputPricePerMillion = 0.14,
                 outputPricePerMillion = 0.28,
+                smallInputPricePerMillion = 0.14,
+                smallOutputPricePerMillion = 0.28,
+                largeInputPricePerMillion = 0.435,
+                largeOutputPricePerMillion = 0.87,
                 output = java.nio.file.Path.of("report.json"),
                 keysFile = java.nio.file.Path.of("keys.txt"),
             ),
