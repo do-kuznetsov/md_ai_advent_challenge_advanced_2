@@ -73,6 +73,7 @@ internal class QualityEvaluatorTest {
                 model = "test-model",
                 confidenceThreshold = 0.75,
                 maxAttempts = 2,
+                limit = null,
                 inputPricePerMillion = 0.14,
                 outputPricePerMillion = 0.28,
                 output = java.nio.file.Path.of("report.json"),

@@ -20,6 +20,7 @@ deepseek_api_key=...
   --model deepseek-v4-flash \
   --confidence-threshold 0.75 \
   --max-attempts 2 \
+  --limit 16 \
   --input-price-per-million 0.14 \
   --output-price-per-million 0.28 \
   --output ai_training/day7/results/quality-report.json'
@@ -38,6 +39,8 @@ deepseek_api_key=...
 - `clean`: все строки выбранного JSONL.
 - `boundary`: строки без reference-добавок или с эталонным `unknown` risk.
 - `noisy`: in-memory OCR-подобное изменение `composition`; `reference_additives` и эталон остаются прежними.
+
+`--limit` ограничивает число исходных строк до разворачивания сценариев. Использовать для preflight и контроля расхода.
 
 Отчёт содержит каждую попытку, verdict, причины reject, совпадение с эталоном, latency, input/output tokens, расчёт cost, accepted/rejected/retried и дополнительную цену/latency относительно первого primary-вызова. Результаты по умолчанию ignored, потому что могут содержать данные внешнего инференса.
 

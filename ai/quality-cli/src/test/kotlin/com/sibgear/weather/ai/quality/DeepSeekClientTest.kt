@@ -25,7 +25,7 @@ internal class DeepSeekClientTest {
             assertContains(body.text, "\"thinking\"")
             respond(
                 content =
-                    """{"choices":[{"message":{"content":"{}"}}],""" +
+                    """{"id":"response-id","choices":[{"message":{"content":"{}"}}],""" +
                         """"usage":{"prompt_tokens":7,"completion_tokens":3,"total_tokens":10}}""",
                 headers = headersOf("Content-Type", ContentType.Application.Json.toString()),
             )

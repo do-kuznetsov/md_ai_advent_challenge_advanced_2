@@ -1,7 +1,7 @@
 package com.sibgear.weather.ai.quality
 
 import io.ktor.client.HttpClient
-import io.ktor.client.call.body
+import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.accept
 import io.ktor.client.request.header
@@ -15,6 +15,7 @@ import io.ktor.serialization.kotlinx.json.json
 import java.nio.file.Path
 import kotlin.io.path.exists
 import kotlin.io.path.readLines
+import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -61,7 +62,7 @@ internal class DeepSeekClient(
                     ),
                 )
             }
-            val payload = response.body<DeepSeekResponse>()
+            val payload = apiJson.decodeFromString<DeepSeekResponse>(response.bodyAsText())
             val content = payload.choices.firstOrNull()?.message?.content.orEmpty()
             GatewayResult.Success(
                 RemoteResponse(
@@ -83,6 +84,8 @@ internal class DeepSeekClient(
 
         const val CHAT_COMPLETIONS_URL = "https://api.deepseek.com/chat/completions"
         private const val NANOS_PER_MILLISECOND = 1_000_000
+        private const val CONNECT_TIMEOUT_MILLIS = 15_000L
+        private const val REQUEST_TIMEOUT_MILLIS = 60_000L
 
         fun create(apiKey: String, model: String, json: Json): DeepSeekClient =
             DeepSeekClient(
@@ -90,12 +93,22 @@ internal class DeepSeekClient(
                 model = model,
                 client = HttpClient {
                     expectSuccess = true
+                    install(HttpTimeout) {
+                        connectTimeoutMillis = CONNECT_TIMEOUT_MILLIS
+                        requestTimeoutMillis = REQUEST_TIMEOUT_MILLIS
+                        socketTimeoutMillis = REQUEST_TIMEOUT_MILLIS
+                    }
                     install(ContentNegotiation) {
                         json(json)
                     }
                 },
             )
     }
+}
+
+private val apiJson: Json = Json {
+
+    ignoreUnknownKeys = true
 }
 
 internal object ApiKeyLoader {

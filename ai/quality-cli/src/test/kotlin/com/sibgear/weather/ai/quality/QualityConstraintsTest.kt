@@ -39,4 +39,19 @@ internal class QualityConstraintsTest {
 
         assertContains(errors, "confidence_score must be in 0..1")
     }
+
+    @Test
+    fun `allows raw matched text when canonical reference is unchanged`() {
+        val candidate = TestFixtures.envelope.copy(
+            answer = TestFixtures.expected.copy(
+                matchedAdditives = TestFixtures.expected.matchedAdditives.map {
+                    it.copy(matchedText = "Краситель Е133")
+                },
+            ),
+        )
+
+        val errors = QualityConstraints.validate(candidate, TestFixtures.input)
+
+        assertTrue(errors.isEmpty())
+    }
 }

@@ -10,6 +10,7 @@ internal data class CliConfig(
     val model: String,
     val confidenceThreshold: Double,
     val maxAttempts: Int,
+    val limit: Int?,
     val inputPricePerMillion: Double,
     val outputPricePerMillion: Double,
     val output: Path,
@@ -42,6 +43,9 @@ internal object CliParser {
             },
             maxAttempts = (options["--max-attempts"] ?: "2").toInt().also {
                 require(it > 0) { "--max-attempts must be positive." }
+            },
+            limit = options["--limit"]?.toInt()?.also {
+                require(it > 0) { "--limit must be positive." }
             },
             inputPricePerMillion = (options["--input-price-per-million"] ?: "0.14").toDouble().also {
                 require(it >= 0.0) { "--input-price-per-million must not be negative." }
@@ -84,6 +88,7 @@ internal object CliParser {
               --model deepseek-v4-flash
               --confidence-threshold 0.75
               --max-attempts 2
+              --limit <positive count>
               --input-price-per-million 0.14
               --output-price-per-million 0.28
               --output <report.json>

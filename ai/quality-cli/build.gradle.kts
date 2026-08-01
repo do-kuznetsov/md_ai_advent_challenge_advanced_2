@@ -13,6 +13,10 @@ application {
     mainClass.set("com.sibgear.weather.ai.quality.MainKt")
 }
 
+tasks.named<JavaExec>("run") {
+    workingDir = rootProject.projectDir
+}
+
 dependencies {
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.serialization.json)

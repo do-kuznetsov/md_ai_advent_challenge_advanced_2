@@ -64,9 +64,6 @@ internal object QualityConstraints {
                 if (source.canonicalName != additive.canonicalName) {
                     add("matched additive canonical_name differs from reference")
                 }
-                if (source.matchedText != additive.matchedText) {
-                    add("matched additive matched_text differs from reference")
-                }
                 if (source.riskLevel != additive.riskLevel) {
                     add("matched additive risk_level differs from reference")
                 }

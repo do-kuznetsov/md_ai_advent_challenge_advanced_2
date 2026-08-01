@@ -21,6 +21,7 @@ internal class CliAndDatasetTest {
         assertEquals("deepseek-v4-flash", config.model)
         assertEquals(0.75, config.confidenceThreshold)
         assertEquals(2, config.maxAttempts)
+        assertEquals(null, config.limit)
     }
 
     @Test
@@ -40,6 +41,24 @@ internal class CliAndDatasetTest {
         assertEquals(1, cases.size)
         assertEquals(TestFixtures.input, cases.single().input)
         assertEquals(TestFixtures.expected, cases.single().expected)
+        Files.deleteIfExists(path)
+    }
+
+    @Test
+    fun `loads product without optional name`() {
+        val path = Files.createTempFile("quality-cli-null-name", ".jsonl")
+        val row = DatasetRow(
+            messages = listOf(
+                ChatMessage("system", "Верни JSON."),
+                ChatMessage("user", compactJson.encodeToString(TestFixtures.input.copy(productName = null))),
+                ChatMessage("assistant", compactJson.encodeToString(TestFixtures.expected)),
+            ),
+        )
+        path.writeText(compactJson.encodeToString(row) + "\n")
+
+        val loaded = DatasetLoader(qualityJson).load(path).single()
+
+        assertEquals(null, loaded.input.productName)
         Files.deleteIfExists(path)
     }
 

@@ -87,7 +87,7 @@ internal data class ProductInput(
     @SerialName("composition")
     val composition: String,
     @SerialName("product_name")
-    val productName: String,
+    val productName: String? = null,
     @SerialName("reference_additives")
     val referenceAdditives: List<ReferenceAdditive>,
 )

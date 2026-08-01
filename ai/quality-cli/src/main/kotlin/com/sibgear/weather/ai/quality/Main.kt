@@ -15,7 +15,9 @@ fun main(args: Array<String>): Unit = runBlocking {
     val apiKey = requireNotNull(ApiKeyLoader.load(config.keysFile)) {
         "DEEPSEEK_API_KEY or deepseek_api_key in ${config.keysFile} is required."
     }
-    val source = DatasetLoader(qualityJson).load(config.dataset)
+    val source = DatasetLoader(qualityJson).load(config.dataset).let { cases ->
+        config.limit?.let(cases::take) ?: cases
+    }
     val cases = ScenarioFactory.create(source, config.scenarios)
     require(cases.isNotEmpty()) { "No cases selected by --scenarios." }
 

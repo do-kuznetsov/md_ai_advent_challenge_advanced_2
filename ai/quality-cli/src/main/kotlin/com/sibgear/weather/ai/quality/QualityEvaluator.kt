@@ -61,7 +61,12 @@ internal class QualityEvaluator(
 
         for (attemptIndex in 1..config.maxAttempts) {
             val reasons = mutableListOf<String>()
-            val primaryResult = gateway.complete(primaryMessages(evaluationCase))
+            val primaryResult = gateway.complete(
+                primaryMessages(
+                    evaluationCase = evaluationCase,
+                    previousRejectionReasons = finalReasons.takeIf { attempts.isNotEmpty() },
+                ),
+            )
             if (primaryResult is GatewayResult.Failure) {
                 reasons += "Primary request failed: ${primaryResult.message}"
                 attempts += AttemptReport(index = attemptIndex, reasons = reasons)
@@ -237,13 +242,18 @@ internal class QualityEvaluator(
         )
     }
 
-    private fun primaryMessages(evaluationCase: EvaluationCase): List<ChatMessage> = listOf(
+    private fun primaryMessages(
+        evaluationCase: EvaluationCase,
+        previousRejectionReasons: List<String>?,
+    ): List<ChatMessage> = listOf(
         ChatMessage(
             role = "system",
             content = """
                 ${evaluationCase.systemPrompt}
-                Верни JSON-envelope без Markdown: {"answer": ProductSafetyAssessment, "confidence_score": number 0..1, "status": "OK|UNSURE|FAIL"}.
-                answer обязан иметь ключи risk_level, matched_additives, warnings, safe_summary, confidence.
+                Верни JSON-envelope без Markdown:
+                {"answer":{"risk_level":"low|medium|high|unknown","matched_additives":[{"matched_text":"string","canonical_name":"string","code":"string|null","risk_level":"low|medium|high|unknown","reason":"string"}],"warnings":["string"],"safe_summary":"string","confidence":"low|medium|high"},"confidence_score":0.0,"status":"OK|UNSURE|FAIL"}.
+                answer обязан иметь ровно перечисленные ключи. matched_additives обязан быть массивом объектов, не строк.
+                ${repairInstruction(previousRejectionReasons)}
                 JSON обязателен.
             """.trimIndent(),
         ),
@@ -275,6 +285,10 @@ internal class QualityEvaluator(
             costUsd = response.usage.promptTokens * config.inputPricePerMillion / MILLION +
                 response.usage.completionTokens * config.outputPricePerMillion / MILLION,
         )
+
+    private fun repairInstruction(reasons: List<String>?): String =
+        reasons?.joinToString(prefix = "Предыдущий ответ отклонён: ", separator = "; ", postfix = ". Исправь это.")
+            ?: ""
 
     private companion object {
 
