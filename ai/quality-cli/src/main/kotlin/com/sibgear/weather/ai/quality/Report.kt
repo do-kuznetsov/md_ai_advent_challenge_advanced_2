@@ -9,14 +9,21 @@ import kotlinx.serialization.json.Json
 
 @Serializable
 internal data class ReportConfig(
+    val mode: CliMode,
     val dataset: String,
     val checks: Set<CheckType>,
     val scenarios: Set<Scenario>,
     val model: String,
+    val smallModel: String,
+    val largeModel: String,
     val confidenceThreshold: Double,
     val maxAttempts: Int,
     val inputPricePerMillion: Double,
     val outputPricePerMillion: Double,
+    val smallInputPricePerMillion: Double,
+    val smallOutputPricePerMillion: Double,
+    val largeInputPricePerMillion: Double,
+    val largeOutputPricePerMillion: Double,
 )
 
 @Serializable
@@ -36,6 +43,10 @@ internal data class QualitySummary(
     val additionalCostUsd: Double,
     val riskLevelMatchesExpected: Int,
     val additiveCodesMatchExpected: Int,
+    val acceptedOnSmall: Int,
+    val escalatedToLarge: Int,
+    val acceptedOnLarge: Int,
+    val routingRejected: Int,
 )
 
 @Serializable
@@ -51,14 +62,21 @@ internal object ReportFactory {
     fun create(config: CliConfig, results: List<CaseReport>): QualityReport =
         QualityReport(
             config = ReportConfig(
+                mode = config.mode,
                 dataset = config.dataset.toString(),
                 checks = config.checks,
                 scenarios = config.scenarios,
                 model = config.model,
+                smallModel = config.smallModel,
+                largeModel = config.largeModel,
                 confidenceThreshold = config.confidenceThreshold,
                 maxAttempts = config.maxAttempts,
                 inputPricePerMillion = config.inputPricePerMillion,
                 outputPricePerMillion = config.outputPricePerMillion,
+                smallInputPricePerMillion = config.smallInputPricePerMillion,
+                smallOutputPricePerMillion = config.smallOutputPricePerMillion,
+                largeInputPricePerMillion = config.largeInputPricePerMillion,
+                largeOutputPricePerMillion = config.largeOutputPricePerMillion,
             ),
             overall = summarize(results),
             byScenario = results.groupBy(CaseReport::scenario).mapValues { (_, cases) -> summarize(cases) },
@@ -89,6 +107,12 @@ internal object ReportFactory {
             additionalCostUsd = calls.sumOf(CallStats::costUsd) - baselineCost,
             riskLevelMatchesExpected = results.count { it.riskLevelMatchesExpected == true },
             additiveCodesMatchExpected = results.count { it.additiveCodesMatchExpected == true },
+            acceptedOnSmall = results.count { it.routingDecision == RoutingDecision.ACCEPTED_ON_SMALL },
+            escalatedToLarge = attempts.count {
+                it.routingDecision == RoutingDecision.ESCALATED_TO_LARGE
+            },
+            acceptedOnLarge = results.count { it.routingDecision == RoutingDecision.ACCEPTED_ON_LARGE },
+            routingRejected = results.count { it.routingDecision == RoutingDecision.REJECTED },
         )
     }
 }
