@@ -1,0 +1,4 @@
+interface:
+  display_name: "Добавить день challenge"
+  short_description: "Добавление нового дня в tasks.md"
+  default_prompt: "Use $add-challenge-day-task to add a new challenge day to tasks.md."
