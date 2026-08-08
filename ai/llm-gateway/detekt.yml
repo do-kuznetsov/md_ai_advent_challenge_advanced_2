@@ -1,0 +1,32 @@
+complexity:
+  ComplexCondition:
+    threshold: 5
+  CyclomaticComplexMethod:
+    threshold: 30
+  LongMethod:
+    threshold: 140
+  LongParameterList:
+    functionThreshold: 8
+    constructorThreshold: 8
+    ignoreDefaultParameters: true
+  TooManyFunctions:
+    thresholdInClasses: 20
+
+exceptions:
+  TooGenericExceptionCaught:
+    active: false
+
+naming:
+  FunctionNaming:
+    ignoreAnnotated:
+      - Composable
+
+style:
+  MagicNumber:
+    active: false
+  MaxLineLength:
+    maxLineLength: 1600
+  ReturnCount:
+    max: 8
+  ThrowsCount:
+    max: 10

@@ -1,0 +1,115 @@
+CREATE TABLE chat (
+    id TEXT NOT NULL PRIMARY KEY,
+    input_guard_mode TEXT NOT NULL,
+    system_canary TEXT NOT NULL,
+    created_at_epoch_millis INTEGER NOT NULL,
+    updated_at_epoch_millis INTEGER NOT NULL,
+    prompt_count INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE turn (
+    request_id TEXT NOT NULL PRIMARY KEY,
+    chat_id TEXT NOT NULL REFERENCES chat(id) ON DELETE CASCADE,
+    turn_index INTEGER NOT NULL,
+    input_original TEXT NOT NULL,
+    input_modified TEXT NOT NULL,
+    input_decision TEXT NOT NULL,
+    input_findings_json TEXT NOT NULL,
+    output_original TEXT,
+    output_modified TEXT,
+    output_decision TEXT,
+    output_findings_json TEXT,
+    provider_status TEXT NOT NULL,
+    prompt_tokens INTEGER NOT NULL DEFAULT 0,
+    cache_hit_tokens INTEGER NOT NULL DEFAULT 0,
+    cache_miss_tokens INTEGER NOT NULL DEFAULT 0,
+    completion_tokens INTEGER NOT NULL DEFAULT 0,
+    total_tokens INTEGER NOT NULL DEFAULT 0,
+    cost_usd TEXT NOT NULL DEFAULT '0',
+    latency_ms INTEGER NOT NULL DEFAULT 0,
+    created_at_epoch_millis INTEGER NOT NULL,
+    completed_at_epoch_millis INTEGER,
+    UNIQUE(chat_id, turn_index)
+);
+
+CREATE INDEX turn_chat_index ON turn(chat_id, turn_index);
+
+insertChat:
+INSERT INTO chat(
+    id,
+    input_guard_mode,
+    system_canary,
+    created_at_epoch_millis,
+    updated_at_epoch_millis,
+    prompt_count
+)
+VALUES (?, ?, ?, ?, ?, 0);
+
+selectChatById:
+SELECT * FROM chat WHERE id = ?;
+
+selectChats:
+SELECT * FROM chat ORDER BY updated_at_epoch_millis DESC;
+
+incrementPromptCount:
+UPDATE chat
+SET prompt_count = prompt_count + 1,
+    updated_at_epoch_millis = ?
+WHERE id = ?;
+
+deleteChat:
+DELETE FROM chat WHERE id = ?;
+
+insertTurn:
+INSERT INTO turn(
+    request_id,
+    chat_id,
+    turn_index,
+    input_original,
+    input_modified,
+    input_decision,
+    input_findings_json,
+    provider_status,
+    created_at_epoch_millis
+)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+completeTurn:
+UPDATE turn
+SET output_original = ?,
+    output_modified = ?,
+    output_decision = ?,
+    output_findings_json = ?,
+    provider_status = ?,
+    prompt_tokens = ?,
+    cache_hit_tokens = ?,
+    cache_miss_tokens = ?,
+    completion_tokens = ?,
+    total_tokens = ?,
+    cost_usd = ?,
+    latency_ms = ?,
+    completed_at_epoch_millis = ?
+WHERE request_id = ?;
+
+failTurn:
+UPDATE turn
+SET provider_status = ?,
+    latency_ms = ?,
+    completed_at_epoch_millis = ?
+WHERE request_id = ?;
+
+interruptPending:
+UPDATE turn
+SET provider_status = 'INTERRUPTED',
+    completed_at_epoch_millis = ?
+WHERE provider_status = 'PENDING';
+
+selectTurnsByChat:
+SELECT * FROM turn WHERE chat_id = ? ORDER BY turn_index ASC;
+
+selectCompletedTurnsBefore:
+SELECT * FROM turn
+WHERE chat_id = ?
+  AND turn_index < ?
+  AND provider_status = 'COMPLETED'
+ORDER BY turn_index ASC;
