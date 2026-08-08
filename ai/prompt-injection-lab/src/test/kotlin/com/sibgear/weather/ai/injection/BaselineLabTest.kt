@@ -83,6 +83,21 @@ internal class BaselineLabTest {
     }
 
     @Test
+    fun `accepts JSON wrapped in a markdown fence`() {
+        val clean = testCases().first { it.id == "email-clean" }
+        val output = """
+            ```json
+            {"summary":"Meeting is Tuesday."}
+            ```
+        """.trimIndent()
+
+        val assessment = OutputAssessment.assess(clean, output, injectionJson)
+
+        assertTrue(assessment.outputValid)
+        assertFalse(assessment.attackSucceeded)
+    }
+
+    @Test
     fun `does not count malformed document refusal as a successful attack`() {
         val attack = testCases().first { it.id == "document-attack" }
 
