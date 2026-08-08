@@ -37,6 +37,16 @@ internal enum class RunStage {
 }
 
 @Serializable
+internal enum class GatewayProvider {
+
+    @SerialName("deepseek")
+    DEEPSEEK,
+
+    @SerialName("openrouter")
+    OPENROUTER,
+}
+
+@Serializable
 internal enum class DefenseProfile {
 
     @SerialName("sanitization")
@@ -110,3 +120,5 @@ internal interface LlmGateway {
 
     suspend fun complete(messages: List<ChatMessage>): GatewayResult
 }
+
+internal interface CloseableLlmGateway : LlmGateway, AutoCloseable

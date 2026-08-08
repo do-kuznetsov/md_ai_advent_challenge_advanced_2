@@ -12,15 +12,12 @@ import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
-import java.nio.file.Path
-import kotlin.io.path.exists
-import kotlin.io.path.readLines
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 
-internal class DeepSeekClient(
+internal class OpenRouterClient(
     private val apiKey: String,
     private val model: String,
     private val client: HttpClient,
@@ -33,9 +30,9 @@ internal class DeepSeekClient(
                 contentType(ContentType.Application.Json)
                 accept(ContentType.Application.Json)
                 header(HttpHeaders.Authorization, "Bearer $apiKey")
-                setBody(DeepSeekRequest(model = model, messages = messages))
+                setBody(OpenRouterRequest(model = model, messages = messages))
             }
-            val payload = apiJson.decodeFromString<DeepSeekResponse>(response.bodyAsText())
+            val payload = openRouterJson.decodeFromString<OpenRouterResponse>(response.bodyAsText())
             GatewayResult.Success(
                 content = payload.choices.firstOrNull()?.message?.content.orEmpty(),
                 usage = payload.usage ?: Usage(),
@@ -52,12 +49,12 @@ internal class DeepSeekClient(
 
     internal companion object {
 
-        const val CHAT_COMPLETIONS_URL = "https://api.deepseek.com/chat/completions"
+        const val CHAT_COMPLETIONS_URL = "https://openrouter.ai/api/v1/chat/completions"
         private const val NANOS_PER_MILLISECOND = 1_000_000
         private const val TIMEOUT_MILLIS = 60_000L
 
-        fun create(apiKey: String, model: String): DeepSeekClient =
-            DeepSeekClient(
+        fun create(apiKey: String, model: String): OpenRouterClient =
+            OpenRouterClient(
                 apiKey = apiKey,
                 model = model,
                 client = HttpClient {
@@ -68,73 +65,41 @@ internal class DeepSeekClient(
                         socketTimeoutMillis = TIMEOUT_MILLIS
                     }
                     install(ContentNegotiation) {
-                        json(apiJson)
+                        json(openRouterJson)
                     }
                 },
             )
     }
 }
 
-internal object ApiKeyLoader {
-
-    @Suppress("ReturnCount")
-    fun load(keysFile: Path, keyNames: List<String>): String? {
-        keyNames.firstNotNullOfOrNull(System::getenv)?.let { return it }
-        if (!keysFile.exists()) {
-            return null
-        }
-        val values = keysFile.readLines()
-            .map(String::trim)
-            .filter { it.isNotBlank() && !it.startsWith('#') }
-            .mapNotNull(::parseKey)
-            .toMap()
-        return keyNames.firstNotNullOfOrNull(values::get)
-    }
-
-    private fun parseKey(line: String): Pair<String, String>? {
-        val normalized = line.removePrefix("export ").trim()
-        val separator = normalized.indexOf('=')
-        if (separator < 1) {
-            return null
-        }
-        return normalized.substring(0, separator).trim() to normalized.substring(separator + 1).trim().trim('"', '\'')
-    }
-}
-
-private val apiJson: Json = Json { ignoreUnknownKeys = true }
+private val openRouterJson: Json = Json { ignoreUnknownKeys = true }
 
 @Serializable
-private data class DeepSeekRequest(
+private data class OpenRouterRequest(
     val model: String,
     val messages: List<ChatMessage>,
     val temperature: Double = 0.0,
     @SerialName("response_format")
-    val responseFormat: JsonResponseFormat = JsonResponseFormat(),
-    val thinking: ThinkingOptions = ThinkingOptions(),
+    val responseFormat: OpenRouterResponseFormat = OpenRouterResponseFormat(),
 )
 
 @Serializable
-private data class JsonResponseFormat(
+private data class OpenRouterResponseFormat(
     val type: String = "json_object",
 )
 
 @Serializable
-private data class ThinkingOptions(
-    val type: String = "disabled",
-)
-
-@Serializable
-private data class DeepSeekResponse(
-    val choices: List<DeepSeekChoice> = emptyList(),
+private data class OpenRouterResponse(
+    val choices: List<OpenRouterChoice> = emptyList(),
     val usage: Usage? = null,
 )
 
 @Serializable
-private data class DeepSeekChoice(
-    val message: DeepSeekMessage,
+private data class OpenRouterChoice(
+    val message: OpenRouterMessage,
 )
 
 @Serializable
-private data class DeepSeekMessage(
+private data class OpenRouterMessage(
     val content: String? = null,
 )

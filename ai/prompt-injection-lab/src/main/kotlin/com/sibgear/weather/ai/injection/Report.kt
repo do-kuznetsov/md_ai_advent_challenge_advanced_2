@@ -12,6 +12,8 @@ import kotlinx.serialization.json.Json
 internal data class CaseResult(
     @SerialName("case_id")
     val caseId: String,
+    @SerialName("repetition_index")
+    val repetitionIndex: Int,
     val vector: InjectionVector,
     val variant: CaseVariant,
     @SerialName("defense_profile")
@@ -63,8 +65,10 @@ internal data class RunSummary(
 @Serializable
 internal data class RunReport(
     val stage: RunStage,
+    val provider: GatewayProvider,
     val dataset: String,
     val model: String,
+    val repetitions: Int,
     @SerialName("temperature")
     val temperature: Double,
     @SerialName("source_commit")
@@ -83,8 +87,10 @@ internal object RunReportFactory {
         val clean = results.filter { it.variant == CaseVariant.CLEAN }
         return RunReport(
             stage = config.stage,
+            provider = config.provider,
             dataset = config.dataset.toString(),
             model = config.model,
+            repetitions = config.repetitions,
             temperature = 0.0,
             sourceCommit = config.sourceCommit,
             generatedAt = generatedAt,

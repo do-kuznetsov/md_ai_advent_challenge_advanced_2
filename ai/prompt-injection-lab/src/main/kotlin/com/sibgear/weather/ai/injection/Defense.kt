@@ -196,12 +196,20 @@ internal class DefenseEvaluator(
     private val outputPricePerMillion: Double,
 ) {
 
-    suspend fun evaluate(cases: List<InjectionCase>, profiles: Set<DefenseProfile>): List<CaseResult> =
+    suspend fun evaluate(
+        cases: List<InjectionCase>,
+        profiles: Set<DefenseProfile>,
+        repetitionIndex: Int = 1,
+    ): List<CaseResult> =
         cases.flatMap { case ->
-            profilesFor(case, profiles).map { profile -> evaluate(case, profile) }
+            profilesFor(case, profiles).map { profile -> evaluate(case, profile, repetitionIndex) }
         }
 
-    private suspend fun evaluate(case: InjectionCase, profile: DefenseProfile): CaseResult {
+    private suspend fun evaluate(
+        case: InjectionCase,
+        profile: DefenseProfile,
+        repetitionIndex: Int,
+    ): CaseResult {
         val sanitization = if (profile.hasSanitization()) {
             InputSanitizer.sanitize(case.content)
         } else {
@@ -210,13 +218,14 @@ internal class DefenseEvaluator(
         val messages = DefendedPromptBuilder.build(case, profile, sanitization.content)
         return when (val result = gateway.complete(messages)) {
             is GatewayResult.Failure -> error("${case.id}/$profile: ${result.message}")
-            is GatewayResult.Success -> createResult(case, profile, sanitization, result)
+            is GatewayResult.Success -> createResult(case, profile, repetitionIndex, sanitization, result)
         }
     }
 
     private fun createResult(
         case: InjectionCase,
         profile: DefenseProfile,
+        repetitionIndex: Int,
         sanitization: SanitizationResult,
         result: GatewayResult.Success,
     ): CaseResult {
@@ -228,6 +237,7 @@ internal class DefenseEvaluator(
         }
         return CaseResult(
             caseId = case.id,
+            repetitionIndex = repetitionIndex,
             vector = case.vector,
             variant = case.variant,
             defenseProfile = profile,
