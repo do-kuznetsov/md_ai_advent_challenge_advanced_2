@@ -71,6 +71,21 @@ internal class DefenseTest {
     }
 
     @Test
+    fun `validator inspects unexpected fields inside fenced JSON`() {
+        val case = defenseCases().first { it.id == "email-clean" }
+        val output = """
+            ```json
+            {"summary":"Meeting Tuesday.","action":"send"}
+            ```
+        """.trimIndent()
+
+        val result = OutputValidator.validate(case, output, injectionJson)
+
+        assertEquals(ValidationDecision.REJECTED, result.decision)
+        assertTrue("validator_unexpected_fields" in result.reasons)
+    }
+
+    @Test
     fun `validator rejects malformed JSON and fake citation`() {
         val email = defenseCases().first { it.id == "email-attack" }
         val web = defenseCases().first { it.id == "web-attack" }

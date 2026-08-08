@@ -153,7 +153,7 @@ internal object OutputValidator {
 
     fun validate(case: InjectionCase, output: String, json: Json): ValidationResult {
         val assessment = OutputAssessment.assess(case, output, json)
-        val parsed = runCatching { json.parseToJsonElement(output).jsonObject }.getOrNull()
+        val parsed = parseOutputObject(output, json)
         val reasons = buildList {
             if (!assessment.outputValid) {
                 add("validator_invalid_schema")
