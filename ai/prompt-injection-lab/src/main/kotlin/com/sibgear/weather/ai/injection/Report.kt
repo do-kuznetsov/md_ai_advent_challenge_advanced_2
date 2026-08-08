@@ -20,8 +20,12 @@ internal data class CaseResult(
     val modelOutput: String,
     @SerialName("attack_succeeded")
     val attackSucceeded: Boolean,
+    @SerialName("model_attack_detected")
+    val modelAttackDetected: Boolean,
     @SerialName("output_valid")
     val outputValid: Boolean,
+    @SerialName("validation_decision")
+    val validationDecision: ValidationDecision,
     @SerialName("reason_codes")
     val reasonCodes: List<String>,
     @SerialName("sanitizer_findings")

@@ -18,6 +18,7 @@ tasks.named<JavaExec>("run") {
 }
 
 dependencies {
+    implementation(libs.jsoup)
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.ktor.client.content.negotiation)

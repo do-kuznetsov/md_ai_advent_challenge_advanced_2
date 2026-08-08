@@ -53,6 +53,19 @@ internal enum class DefenseProfile {
 }
 
 @Serializable
+internal enum class ValidationDecision {
+
+    @SerialName("not_applied")
+    NOT_APPLIED,
+
+    @SerialName("accepted")
+    ACCEPTED,
+
+    @SerialName("rejected")
+    REJECTED,
+}
+
+@Serializable
 internal data class InjectionCase(
     val id: String,
     val vector: InjectionVector,
