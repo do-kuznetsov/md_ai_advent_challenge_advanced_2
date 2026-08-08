@@ -1,0 +1,26 @@
+{
+    "generatedAtEpochMillis": 1786172125396,
+    "provider": "DeepSeek",
+    "model": "deepseek-v4-flash",
+    "status": "passed",
+    "gatewayUrl": "http://127.0.0.1:18091",
+    "database": "ai_training/day13/runtime/live-smoke.sqlite",
+    "chatId": "8311c16b-65c8-4e4a-8179-d2842e98bc6a",
+    "requestId": "950401a1-c838-42cd-aa49-b892f7f24c1c",
+    "assertions": {
+        "real_provider_call": true,
+        "original_secret_absent_from_provider_messages": true,
+        "modified_placeholder_present_in_provider_messages": true,
+        "block_returns_422": true,
+        "block_skips_provider": true
+    },
+    "usage": {
+        "prompt": 153,
+        "cacheHit": 0,
+        "cacheMiss": 153,
+        "completion": 50,
+        "total": 203
+    },
+    "costUsd": "0.00003542",
+    "latencyMs": 1699
+}

@@ -1,0 +1,16 @@
+{
+  "suite": "Day 13 deterministic guard cases",
+  "status": "passed",
+  "total": 15,
+  "caught": [
+    "openai-key", "github-key", "aws-key", "email", "phone", "valid-card",
+    "base64-secret", "split-secret", "generated-secret", "system-canary",
+    "private-url", "pipe-to-shell", "destructive-command"
+  ],
+  "passed_clean_controls": ["invalid-luhn", "clean"],
+  "known_intentional_passes": [
+    "invalid-Luhn card candidates are not treated as card secrets",
+    "clean prompts pass unchanged"
+  ],
+  "verification": "./gradlew :ai:llm-gateway:jvmTest"
+}

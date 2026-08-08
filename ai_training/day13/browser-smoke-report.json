@@ -1,0 +1,31 @@
+{
+  "generatedAtEpochMillis": 1786171910000,
+  "status": "passed",
+  "gatewayUrl": "http://127.0.0.1:18090",
+  "chatId": "e7e59d79-f586-4a94-ab1f-2cf71f67c4f1",
+  "assertions": {
+    "debug_button_disabled_before_chat_selection": true,
+    "main_window_shows_original_input": true,
+    "main_window_does_not_replace_original_input": true,
+    "debug_view_shows_modified_input": true,
+    "debug_view_shows_findings_and_fingerprint": true,
+    "debug_view_contains_no_mutation_controls": true,
+    "polling_adds_new_turn_without_reload": true,
+    "unknown_chat_shows_readonly_error": true,
+    "debug_button_has_aria_label": true,
+    "debug_button_has_no_visible_text_or_tooltip": true,
+    "debug_button_renders_inline_svg": true,
+    "debug_button_uses_outlined_bug_report_contract": true
+  },
+  "observed": {
+    "main_original_secret": "synthetic.day13@example.invalid",
+    "debug_replacement": "[REDACTED_EMAIL]",
+    "debug_rule_id": "INPUT_EMAIL",
+    "polling_turn_count_after": 2,
+    "unknown_chat_error": "CHAT_NOT_FOUND: Chat not found",
+    "icon_svg_count": 1,
+    "icon_text": "",
+    "icon_title": null
+  },
+  "automation_note": "The in-app browser blocks popup creation. Named window.open and focus reuse are covered by UI contract tests; modified readonly view was verified in a second top-level browser tab."
+}

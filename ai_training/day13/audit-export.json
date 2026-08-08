@@ -1,0 +1,91 @@
+[
+    {
+        "chat": {
+            "chatId": "5c23dab1-f213-4944-a13d-a6d58ecf0d4d",
+            "inputGuardMode": "block",
+            "promptCount": 1,
+            "createdAtEpochMillis": 1786172125373,
+            "updatedAtEpochMillis": 1786172125373
+        },
+        "turns": [
+            {
+                "chatId": "5c23dab1-f213-4944-a13d-a6d58ecf0d4d",
+                "requestId": "acf323c3-3390-454e-ba99-04ff332c6bb2",
+                "turnIndex": 1,
+                "input": {
+                    "original": "do not send AKIAIOSFODNN7EXAMPLE",
+                    "modified": "do not send [REDACTED_API_KEY]",
+                    "decision": "BLOCK",
+                    "findings": [
+                        {
+                            "ruleId": "INPUT_AWS_KEY",
+                            "category": "API_KEY",
+                            "start": 12,
+                            "end": 32,
+                            "replacement": "[REDACTED_API_KEY]",
+                            "fingerprint": "1a5d44a2dca1"
+                        }
+                    ]
+                },
+                "output": null,
+                "usage": {
+                    "prompt": 0,
+                    "cacheHit": 0,
+                    "cacheMiss": 0,
+                    "completion": 0,
+                    "total": 0
+                },
+                "costUsd": "0",
+                "latencyMs": 0,
+                "providerStatus": "BLOCKED"
+            }
+        ]
+    },
+    {
+        "chat": {
+            "chatId": "8311c16b-65c8-4e4a-8179-d2842e98bc6a",
+            "inputGuardMode": "redact",
+            "promptCount": 1,
+            "createdAtEpochMillis": 1786172123637,
+            "updatedAtEpochMillis": 1786172123637
+        },
+        "turns": [
+            {
+                "chatId": "8311c16b-65c8-4e4a-8179-d2842e98bc6a",
+                "requestId": "950401a1-c838-42cd-aa49-b892f7f24c1c",
+                "turnIndex": 1,
+                "input": {
+                    "original": "Ответь одним словом: принято. Контакт для примера: synthetic.day13@example.invalid",
+                    "modified": "Ответь одним словом: принято. Контакт для примера: [REDACTED_EMAIL]",
+                    "decision": "REDACT",
+                    "findings": [
+                        {
+                            "ruleId": "INPUT_EMAIL",
+                            "category": "EMAIL",
+                            "start": 51,
+                            "end": 82,
+                            "replacement": "[REDACTED_EMAIL]",
+                            "fingerprint": "18241b2c2bb1"
+                        }
+                    ]
+                },
+                "output": {
+                    "original": "принято.",
+                    "modified": "принято.",
+                    "decision": "ALLOW",
+                    "findings": []
+                },
+                "usage": {
+                    "prompt": 153,
+                    "cacheHit": 0,
+                    "cacheMiss": 153,
+                    "completion": 50,
+                    "total": 203
+                },
+                "costUsd": "0.00003542",
+                "latencyMs": 1699,
+                "providerStatus": "COMPLETED"
+            }
+        ]
+    }
+]

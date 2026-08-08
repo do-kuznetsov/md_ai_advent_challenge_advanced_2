@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LLM Gateway</title>
+    <style>
+        :root { color-scheme: dark; font-family: Inter, system-ui, sans-serif; background: #0b1020; color: #e8ecf7; }
+        * { box-sizing: border-box; }
+        body { margin: 0; }
+        button, select, textarea { font: inherit; }
+        button, select { border: 1px solid #344064; border-radius: 10px; background: #18213a; color: #e8ecf7; padding: 10px 14px; cursor: pointer; }
+        button:disabled { cursor: not-allowed; opacity: .42; }
+        .shell { display: grid; grid-template-columns: 270px 1fr; min-height: 100vh; }
+        .sidebar { border-right: 1px solid #26304d; padding: 20px; display: flex; flex-direction: column; gap: 10px; }
+        .sidebar h1 { font-size: 20px; margin: 0 0 12px; }
+        .chat-link { text-align: left; overflow: hidden; }
+        .chat-link.selected { border-color: #7c9cff; background: #24345f; }
+        .main, .debug-main { width: min(100%, 1100px); margin: 0 auto; padding: 24px; }
+        .toolbar { display: flex; align-items: center; gap: 10px; min-height: 48px; }
+        .icon-button { display: inline-flex; align-items: center; justify-content: center; padding: 8px; width: 42px; height: 42px; }
+        .danger { margin-left: auto; border-color: #944b5a; }
+        .history { display: flex; flex-direction: column; gap: 14px; padding: 24px 0 150px; }
+        .message { max-width: 82%; border: 1px solid #2e3b60; border-radius: 14px; padding: 14px; background: #141c31; }
+        .message.user { align-self: flex-end; background: #20345d; }
+        .message.assistant { align-self: flex-start; }
+        .message small, .message code { display: block; color: #9ba9cd; margin-bottom: 8px; }
+        .message pre { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; }
+        .composer { position: fixed; left: max(294px, calc((100vw - 1100px) / 2 + 270px)); right: max(24px, calc((100vw - 1100px) / 2)); bottom: 18px; display: grid; grid-template-columns: 1fr auto; gap: 10px; padding: 12px; background: #10182bbf; backdrop-filter: blur(12px); border: 1px solid #2e3b60; border-radius: 16px; }
+        textarea { min-height: 78px; resize: vertical; border: 0; outline: 0; background: transparent; color: inherit; padding: 8px; }
+        .error { padding: 12px; border: 1px solid #944b5a; border-radius: 10px; color: #ffb3c0; }
+        .debug-main { display: flex; flex-direction: column; gap: 14px; }
+        .debug-main .message { max-width: 100%; width: 100%; }
+        @media (max-width: 760px) { .shell { grid-template-columns: 1fr; } .sidebar { border-right: 0; border-bottom: 1px solid #26304d; } .composer { left: 24px; } }
+    </style>
+</head>
+<body>
+<div id="root"></div>
+<script src="llm-gateway-ui.js"></script>
+</body>
+</html>

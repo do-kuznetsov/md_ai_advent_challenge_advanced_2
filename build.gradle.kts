@@ -1,3 +1,6 @@
+import org.jetbrains.kotlin.gradle.targets.js.nodejs.NodeJsEnvSpec
+import org.jetbrains.kotlin.gradle.targets.js.nodejs.NodeJsPlugin
+
 plugins {
     alias(libs.plugins.android.application) apply false
     alias(libs.plugins.android.kotlin.multiplatform.library) apply false
@@ -9,6 +12,13 @@ plugins {
     alias(libs.plugins.kotlin.jvm) apply false
     alias(libs.plugins.kotlinx.kover)
     alias(libs.plugins.sqldelight) apply false
+}
+
+plugins.withType<NodeJsPlugin>().configureEach {
+    extensions.configure<NodeJsEnvSpec> {
+        download.set(false)
+        command.set("node")
+    }
 }
 
 dependencies {

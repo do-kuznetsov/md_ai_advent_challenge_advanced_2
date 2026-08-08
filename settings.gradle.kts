@@ -7,7 +7,7 @@ pluginManagement {
 }
 
 dependencyResolutionManagement {
-    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
     repositories {
         google()
         mavenCentral()
@@ -27,3 +27,4 @@ include(":feature:weather:data")
 include(":feature:weather:ui")
 include(":ai:prompt-injection-lab")
 include(":ai:quality-cli")
+include(":ai:llm-gateway")
